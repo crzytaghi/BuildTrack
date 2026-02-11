@@ -1,0 +1,34 @@
+erDiagram
+  COMPANIES ||--o{ USERS : has
+  COMPANIES ||--o{ ROLES : defines
+  USERS ||--o{ USER_ROLES : assigned
+  ROLES ||--o{ USER_ROLES : includes
+
+  COMPANIES ||--o{ PROJECTS : owns
+  PROJECTS ||--o{ TASKS : has
+  TASKS ||--o{ DOCUMENTS : links
+  PROJECTS ||--o{ DOCUMENTS : stores
+
+  COMPANIES ||--o{ COST_CATEGORIES : defines
+  COMPANIES ||--o{ COST_SUBCATEGORIES : defines
+  COMPANIES ||--o{ COST_CODES : defines
+
+  PROJECTS ||--o{ BUDGET_ITEMS : plans
+  COST_CATEGORIES ||--o{ BUDGET_ITEMS : categorizes
+  COST_SUBCATEGORIES ||--o{ BUDGET_ITEMS : subcategorizes
+  COST_CODES ||--o{ BUDGET_ITEMS : codes
+
+  COMPANIES ||--o{ VENDORS : tracks
+  PROJECTS ||--o{ EXPENSES : records
+  VENDORS ||--o{ EXPENSES : billed_by
+  COST_CATEGORIES ||--o{ EXPENSES : categorized
+  COST_SUBCATEGORIES ||--o{ EXPENSES : subcategorized
+  COST_CODES ||--o{ EXPENSES : coded
+  TASKS ||--o{ EXPENSES : tied_to
+
+  PROJECTS ||--o{ BIDS : receives
+  VENDORS ||--o{ BIDS : submits
+  BUDGET_ITEMS ||--o{ BIDS : links
+
+  COMPANIES ||--o{ AUDIT_EVENTS : logs
+  USERS ||--o{ AUDIT_EVENTS : acts
