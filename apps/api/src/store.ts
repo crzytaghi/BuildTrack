@@ -1,3 +1,18 @@
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+  passwordSalt: string;
+  createdAt: string;
+};
+
+export type Session = {
+  token: string;
+  userId: string;
+  expiresAt: number;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -26,6 +41,8 @@ export type Expense = {
 };
 
 export const db = {
+  users: new Map<string, User>(),
+  sessions: new Map<string, Session>(),
   projects: new Map<string, Project>(),
   tasks: new Map<string, Task>(),
   expenses: new Map<string, Expense>(),
