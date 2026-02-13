@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import AuthCard from './components/AuthCard';
+import AuthLogin from './components/AuthLogin';
+import AuthSignup from './components/AuthSignup';
 
 type User = { id: string; email: string; name: string };
 
@@ -115,53 +118,30 @@ export default function App() {
       <div className="min-h-screen bg-ink text-slate-100">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
         <div className="mx-auto flex min-h-screen w-full max-w-lg items-center justify-center px-6">
-          <div className="w-full rounded-2xl bg-panel p-8 shadow-xl">
-            <div className="text-2xl font-semibold font-display">BuildTrack</div>
-            <div className="mt-1 text-sm text-slate-400">
-              Sign in to manage projects, budgets, and expenses.
-            </div>
-            <div className="mt-6 flex gap-2 rounded-full bg-slate-900 p-1 text-sm">
-              <button
-                className={`flex-1 rounded-full px-4 py-2 ${
-                  authView === 'login' ? 'bg-accent text-slate-950' : 'text-slate-300'
-                }`}
-                onClick={() => {
-                  setAuthView('login');
-                  setError(null);
-                  setSignupName('');
-                  setSignupEmail('');
-                  setSignupPassword('');
-                }}
-              >
-                Login
-              </button>
-              <button
-                className={`flex-1 rounded-full px-4 py-2 ${
-                  authView === 'signup' ? 'bg-accent text-slate-950' : 'text-slate-300'
-                }`}
-                onClick={() => {
-                  setAuthView('signup');
-                  setError(null);
-                  setLoginEmail('');
-                  setLoginPassword('');
-                }}
-              >
-                Sign Up
-              </button>
-            </div>
-
-            {error && (
-              <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                {error}
-              </div>
-            )}
-
+          <AuthCard
+            title="BuildTrack"
+            subtitle="Sign in to manage projects, budgets, and expenses."
+            authView={authView}
+            setAuthView={setAuthView}
+            clearError={() => setError(null)}
+            clearLoginFields={() => {
+              setLoginEmail('');
+              setLoginPassword('');
+            }}
+            clearSignupFields={() => {
+              setSignupName('');
+              setSignupEmail('');
+              setSignupPassword('');
+            }}
+            error={error}
+          >
             {authView === 'login' ? (
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const form = event.currentTarget as HTMLFormElement;
+              <AuthLogin
+                email={loginEmail}
+                password={loginPassword}
+                onEmailChange={setLoginEmail}
+                onPasswordChange={setLoginPassword}
+                onSubmit={async () => {
                   try {
                     await handleAuth('login', { email: loginEmail, password: loginPassword });
                     setLoginEmail('');
@@ -170,43 +150,16 @@ export default function App() {
                     setError(err instanceof Error ? err.message : 'Login failed');
                   }
                 }}
-              >
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-slate-400">Email</label>
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    value={loginEmail}
-                    onChange={(event) => setLoginEmail(event.target.value)}
-                    className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-slate-400">Password</label>
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={loginPassword}
-                    onChange={(event) => setLoginPassword(event.target.value)}
-                    className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                </div>
-                <button
-                  className="mt-2 w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  type="submit"
-                >
-                  Login
-                </button>
-              </form>
+              />
             ) : (
-              <form
-                className="mt-6 space-y-4"
-                onSubmit={async (event) => {
-                  event.preventDefault();
-                  const form = event.currentTarget as HTMLFormElement;
+              <AuthSignup
+                name={signupName}
+                email={signupEmail}
+                password={signupPassword}
+                onNameChange={setSignupName}
+                onEmailChange={setSignupEmail}
+                onPasswordChange={setSignupPassword}
+                onSubmit={async () => {
                   try {
                     await handleAuth('signup', {
                       name: signupName,
@@ -220,50 +173,9 @@ export default function App() {
                     setError(err instanceof Error ? err.message : 'Signup failed');
                   }
                 }}
-              >
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-slate-400">Name</label>
-                  <input
-                    name="name"
-                    type="text"
-                    required
-                    value={signupName}
-                    onChange={(event) => setSignupName(event.target.value)}
-                    className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-slate-400">Email</label>
-                  <input
-                    name="email"
-                    type="email"
-                    required
-                    value={signupEmail}
-                    onChange={(event) => setSignupEmail(event.target.value)}
-                    className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wide text-slate-400">Password</label>
-                  <input
-                    name="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    value={signupPassword}
-                    onChange={(event) => setSignupPassword(event.target.value)}
-                    className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                </div>
-                <button
-                  className="mt-2 w-full rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  type="submit"
-                >
-                  Create Account
-                </button>
-              </form>
+              />
             )}
-          </div>
+          </AuthCard>
         </div>
       </div>
     );
