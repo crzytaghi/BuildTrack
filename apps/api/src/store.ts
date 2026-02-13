@@ -48,6 +48,14 @@ export const db = {
   expenses: new Map<string, Expense>(),
 };
 
+export const resetDb = () => {
+  db.users.clear();
+  db.sessions.clear();
+  db.projects.clear();
+  db.tasks.clear();
+  db.expenses.clear();
+};
+
 export const seed = () => {
   if (db.projects.size > 0) return;
   const project: Project = {
