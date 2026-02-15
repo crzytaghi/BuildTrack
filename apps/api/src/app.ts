@@ -147,6 +147,27 @@ export const buildApp = async () => {
     return { data: project };
   });
 
+  app.patch('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const project = db.projects.get(id);
+    if (!project) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        name: z.string().min(1).optional(),
+        status: z.enum(['planning', 'active', 'on_hold', 'completed']).optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        budgetTotal: z.number().optional(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const updated = { ...project, ...body };
+    db.projects.set(id, updated);
+    return { data: updated };
+  });
+
   app.get('/projects/:id/tasks', { preHandler: requireAuth }, async (req) => {
     const id = (req.params as { id: string }).id;
     const data = Array.from(db.tasks.values()).filter((t) => t.projectId === id);
