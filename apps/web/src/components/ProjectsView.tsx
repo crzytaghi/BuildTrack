@@ -6,11 +6,8 @@ type Props = {
   loading: boolean;
   error: string | null;
   form: ProjectFormState;
-  editingProjectId: string | null;
   onFormChange: (next: ProjectFormState) => void;
   onSubmit: () => void;
-  onCancelEdit: () => void;
-  onEditProject: (project: ProjectItem) => void;
   onViewProject: (projectId: string) => void;
   onLogout: () => void;
 };
@@ -20,11 +17,8 @@ const ProjectsView = ({
   loading,
   error,
   form,
-  editingProjectId,
   onFormChange,
   onSubmit,
-  onCancelEdit,
-  onEditProject,
   onViewProject,
   onLogout,
 }: Props) => (
@@ -42,20 +36,8 @@ const ProjectsView = ({
       </button>
     </header>
     <section className="px-8 py-6">
-      <div className="rounded-2xl bg-panel p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-200">
-            {editingProjectId ? 'Edit Project' : 'New Project'}
-          </div>
-          {editingProjectId && (
-            <button
-              className="text-xs uppercase tracking-wide text-slate-400"
-              onClick={onCancelEdit}
-            >
-              Cancel Edit
-            </button>
-          )}
-        </div>
+        <div className="rounded-2xl bg-panel p-6 shadow-lg">
+          <div className="text-sm font-semibold text-slate-200">New Project</div>
         {error && (
           <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
@@ -126,7 +108,7 @@ const ProjectsView = ({
           className="mt-6 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
           onClick={onSubmit}
         >
-          {editingProjectId ? 'Update Project' : 'Create Project'}
+          Create Project
         </button>
       </div>
     </section>
@@ -149,20 +131,12 @@ const ProjectsView = ({
                         {project.endDate || 'No end'}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                        onClick={() => onViewProject(project.id)}
-                      >
-                        View
-                      </button>
-                      <button
-                        className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                        onClick={() => onEditProject(project)}
-                      >
-                        Edit
-                      </button>
-                    </div>
+                    <button
+                      className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                      onClick={() => onViewProject(project.id)}
+                    >
+                      View
+                    </button>
                   </div>
                 ))
             )}

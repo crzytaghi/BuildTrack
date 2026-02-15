@@ -65,7 +65,6 @@ const AppShell = () => {
     budgetTotal: '',
     notes: '',
   });
-  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -151,7 +150,6 @@ const AppShell = () => {
       budgetTotal: '',
       notes: '',
     });
-    setEditingProjectId(null);
   };
 
   const handleProjectSubmit = async () => {
@@ -169,10 +167,8 @@ const AppShell = () => {
       setProjectsError('Project name is required');
       return;
     }
-    const url = editingProjectId
-      ? `${API_BASE}/projects/${editingProjectId}`
-      : `${API_BASE}/projects`;
-    const method = editingProjectId ? 'PATCH' : 'POST';
+    const url = `${API_BASE}/projects`;
+    const method = 'POST';
     const res = await fetch(url, {
       method,
       headers: {
@@ -186,25 +182,8 @@ const AppShell = () => {
       return;
     }
     const data = (await res.json()) as { data: ProjectItem };
-    setProjects((prev) => {
-      if (editingProjectId) {
-        return prev.map((item) => (item.id === data.data.id ? data.data : item));
-      }
-      return [data.data, ...prev];
-    });
+    setProjects((prev) => [data.data, ...prev]);
     resetProjectForm();
-  };
-
-  const selectProjectForEdit = (project: ProjectItem) => {
-    setEditingProjectId(project.id);
-    setProjectForm({
-      name: project.name,
-      status: project.status,
-      startDate: project.startDate ?? '',
-      endDate: project.endDate ?? '',
-      budgetTotal: project.budgetTotal?.toString() ?? '',
-      notes: project.notes ?? '',
-    });
   };
 
   const handleLogout = async () => {
@@ -344,11 +323,8 @@ const AppShell = () => {
                   loading={projectsLoading}
                   error={projectsError}
                   form={projectForm}
-                  editingProjectId={editingProjectId}
                   onFormChange={setProjectForm}
                   onSubmit={handleProjectSubmit}
-                  onCancelEdit={resetProjectForm}
-                  onEditProject={selectProjectForEdit}
                   onViewProject={(id) => navigate(`/projects/${id}`)}
                   onLogout={handleLogout}
                 />
