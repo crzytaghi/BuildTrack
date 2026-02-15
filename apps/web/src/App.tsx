@@ -14,13 +14,14 @@ import AuthSignup from './components/AuthSignup';
 import DashboardView from './components/DashboardView';
 import ProjectsView from './components/ProjectsView';
 import ProjectDetailView from './components/ProjectDetailView';
+import { getApiBase } from './lib/api';
 import type { ProjectFormState, ProjectItem, ProjectStatus } from './types/projects';
 
 type User = { id: string; email: string; name: string };
 
 type AuthResponse = { token: string; user: User };
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API_BASE = getApiBase();
 
 const nav = [
   'Dashboard',

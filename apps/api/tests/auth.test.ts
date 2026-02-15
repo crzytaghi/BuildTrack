@@ -20,7 +20,7 @@ describe('Auth API', () => {
     await app.ready();
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/signup',
+      url: '/api/v1/auth/signup',
       payload: signupPayload,
     });
     const body = res.json();
@@ -36,12 +36,12 @@ describe('Auth API', () => {
     await app.ready();
     await app.inject({
       method: 'POST',
-      url: '/auth/signup',
+      url: '/api/v1/auth/signup',
       payload: signupPayload,
     });
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/signup',
+      url: '/api/v1/auth/signup',
       payload: signupPayload,
     });
     const body = res.json();
@@ -56,12 +56,12 @@ describe('Auth API', () => {
     await app.ready();
     await app.inject({
       method: 'POST',
-      url: '/auth/signup',
+      url: '/api/v1/auth/signup',
       payload: signupPayload,
     });
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email: signupPayload.email, password: signupPayload.password },
     });
     const body = res.json();
@@ -77,12 +77,12 @@ describe('Auth API', () => {
     await app.ready();
     await app.inject({
       method: 'POST',
-      url: '/auth/signup',
+      url: '/api/v1/auth/signup',
       payload: signupPayload,
     });
     const res = await app.inject({
       method: 'POST',
-      url: '/auth/login',
+      url: '/api/v1/auth/login',
       payload: { email: signupPayload.email, password: 'wrongpass1' },
     });
     const body = res.json();
@@ -95,7 +95,7 @@ describe('Auth API', () => {
   it('requires auth for protected endpoints', async () => {
     const app = await buildApp();
     await app.ready();
-    const res = await app.inject({ method: 'GET', url: '/projects' });
+    const res = await app.inject({ method: 'GET', url: '/api/v1/projects' });
     const body = res.json();
     expect(res.statusCode).toBe(401);
     expect(body.error).toBe('Unauthorized');

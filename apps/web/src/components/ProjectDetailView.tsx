@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getApiBase } from '../lib/api';
 import type { ExpenseItem, ProjectItem, TaskItem } from '../types/projects';
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+const API_BASE = getApiBase();
 
 type Props = {
   projectId: string;

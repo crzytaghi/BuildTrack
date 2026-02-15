@@ -1,9 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import { z } from 'zod';
 import crypto from 'node:crypto';
 import { db, seed, Session, User } from './store.js';
+import authRoutes from './routes/auth.js';
+import projectRoutes from './routes/projects.js';
+import healthRoutes from './routes/health.js';
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -51,167 +53,11 @@ export const buildApp = async () => {
   await app.register(helmet);
 
   seed();
+  const API_PREFIX = '/api/v1';
 
-  app.get('/health', async () => ({ ok: true }));
-
-  app.post('/auth/signup', async (req, reply) => {
-    const body = z
-      .object({
-        name: z.string().min(1),
-        email: z.string().email(),
-        password: z.string().min(8),
-      })
-      .parse(req.body);
-
-    const existing = Array.from(db.users.values()).find((u) => u.email === body.email);
-    if (existing) return reply.code(409).send({ error: 'Email already in use' });
-
-    const salt = crypto.randomBytes(16).toString('hex');
-    const passwordHash = hashPassword(body.password, salt);
-    const user: User = {
-      id: `user_${Date.now()}`,
-      email: body.email,
-      name: body.name,
-      passwordHash,
-      passwordSalt: salt,
-      createdAt: new Date().toISOString(),
-    };
-    db.users.set(user.id, user);
-
-    const session = createSession(user.id);
-    return reply.code(201).send({
-      token: session.token,
-      user: { id: user.id, email: user.email, name: user.name },
-    });
-  });
-
-  app.post('/auth/login', async (req, reply) => {
-    const body = z
-      .object({
-        email: z.string().email(),
-        password: z.string().min(8),
-      })
-      .parse(req.body);
-
-    const user = Array.from(db.users.values()).find((u) => u.email === body.email);
-    if (!user) return reply.code(401).send({ error: 'Invalid credentials' });
-
-    const candidate = hashPassword(body.password, user.passwordSalt);
-    if (candidate !== user.passwordHash) return reply.code(401).send({ error: 'Invalid credentials' });
-
-    const session = createSession(user.id);
-    return reply.send({
-      token: session.token,
-      user: { id: user.id, email: user.email, name: user.name },
-    });
-  });
-
-  app.post('/auth/logout', async (req, reply) => {
-    const auth = getAuthUser(req);
-    if (auth) db.sessions.delete(auth.session.token);
-    reply.send({ ok: true });
-  });
-
-  app.get('/auth/me', async (req, reply) => {
-    const auth = getAuthUser(req);
-    if (!auth) return reply.code(401).send({ error: 'Unauthorized' });
-    return { user: { id: auth.user.id, email: auth.user.email, name: auth.user.name } };
-  });
-
-  app.get('/projects', { preHandler: requireAuth }, async () => ({
-    data: Array.from(db.projects.values()),
-  }));
-
-  app.post('/projects', { preHandler: requireAuth }, async (req, reply) => {
-    const body = z
-      .object({
-        name: z.string().min(1),
-        status: z.enum(['planning', 'active', 'on_hold', 'completed']).default('planning'),
-        startDate: z.string().optional(),
-        endDate: z.string().optional(),
-        budgetTotal: z.number().optional(),
-        notes: z.string().optional(),
-      })
-      .parse(req.body);
-
-    const id = `proj_${Date.now()}`;
-    const project = { id, ...body };
-    db.projects.set(id, project);
-    reply.code(201).send({ data: project });
-  });
-
-  app.get('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const id = (req.params as { id: string }).id;
-    const project = db.projects.get(id);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
-    return { data: project };
-  });
-
-  app.patch('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const id = (req.params as { id: string }).id;
-    const project = db.projects.get(id);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
-
-    const body = z
-      .object({
-        name: z.string().min(1).optional(),
-        status: z.enum(['planning', 'active', 'on_hold', 'completed']).optional(),
-        startDate: z.string().optional(),
-        endDate: z.string().optional(),
-        budgetTotal: z.number().optional(),
-        notes: z.string().optional(),
-      })
-      .parse(req.body);
-
-    const updated = { ...project, ...body };
-    db.projects.set(id, updated);
-    return { data: updated };
-  });
-
-  app.get('/projects/:id/tasks', { preHandler: requireAuth }, async (req) => {
-    const id = (req.params as { id: string }).id;
-    const data = Array.from(db.tasks.values()).filter((t) => t.projectId === id);
-    return { data };
-  });
-
-  app.post('/projects/:id/tasks', { preHandler: requireAuth }, async (req, reply) => {
-    const projectId = (req.params as { id: string }).id;
-    const body = z
-      .object({
-        title: z.string().min(1),
-        status: z.enum(['todo', 'in_progress', 'blocked', 'done']).default('todo'),
-        dueDate: z.string().optional(),
-      })
-      .parse(req.body);
-
-    const id = `task_${Date.now()}`;
-    const task = { id, projectId, ...body };
-    db.tasks.set(id, task);
-    reply.code(201).send({ data: task });
-  });
-
-  app.get('/projects/:id/expenses', { preHandler: requireAuth }, async (req) => {
-    const id = (req.params as { id: string }).id;
-    const data = Array.from(db.expenses.values()).filter((e) => e.projectId === id);
-    return { data };
-  });
-
-  app.post('/projects/:id/expenses', { preHandler: requireAuth }, async (req, reply) => {
-    const projectId = (req.params as { id: string }).id;
-    const body = z
-      .object({
-        amount: z.number(),
-        categoryId: z.string(),
-        description: z.string().optional(),
-        expenseDate: z.string(),
-      })
-      .parse(req.body);
-
-    const id = `exp_${Date.now()}`;
-    const expense = { id, projectId, ...body };
-    db.expenses.set(id, expense);
-    reply.code(201).send({ data: expense });
-  });
+  await app.register(healthRoutes, { prefix: API_PREFIX });
+  await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser });
+  await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth });
 
   return app;
 };
