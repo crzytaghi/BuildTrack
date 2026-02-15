@@ -36,6 +36,7 @@ npm run dev:mobile
 ## API Notes
 - The API currently uses an in-memory store for MVP scaffolding.
 - Prisma schema is set up in `apps/api/prisma/schema.prisma` for Postgres.
+- Auth contract is locked for MVP in `docs/auth.md`.
 - When ready, configure `DATABASE_URL` and run migrations:
 ```
 cd apps/api
