@@ -2,10 +2,12 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import crypto from 'node:crypto';
+import { PrismaClient } from '@prisma/client';
 import { db, seed, Session, User } from './store.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import healthRoutes from './routes/health.js';
+import companyRoutes from './routes/company.js';
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -54,10 +56,24 @@ export const buildApp = async () => {
 
   seed();
   const API_PREFIX = '/api/v1';
+  const prisma = new PrismaClient();
+  await prisma.$connect();
+
+  const ensureCompany = async () => {
+    const existing = await prisma.company.findFirst();
+    if (!existing) {
+      await prisma.company.create({ data: { name: 'BuildTrack', companySetupComplete: false } });
+    }
+  };
+  await ensureCompany();
+  app.addHook('onClose', async () => {
+    await prisma.$disconnect();
+  });
 
   await app.register(healthRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser });
   await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth });
+  await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth });
 
   return app;
 };
