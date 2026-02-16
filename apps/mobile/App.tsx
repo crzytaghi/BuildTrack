@@ -1,59 +1,104 @@
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import AuthScreen from './src/screens/AuthScreen';
+import ProjectsScreen from './src/screens/ProjectsScreen';
+import ProjectDetailScreen from './src/screens/ProjectDetailScreen';
+import type { User } from './src/types';
+import { getApiBase } from './src/lib/api';
 
-const styles = {
-  screen: { flex: 1, backgroundColor: '#0b1118', padding: 20 },
-  title: { color: '#f8fafc', fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  subtitle: { color: '#94a3b8', fontSize: 12, marginBottom: 16 },
-  card: { backgroundColor: '#111827', padding: 16, borderRadius: 16, marginBottom: 12 },
-  label: { color: '#94a3b8', fontSize: 12 },
-  value: { color: '#f8fafc', fontSize: 18, fontWeight: '700', marginTop: 6 },
+const API_BASE = getApiBase();
+
+export type RootStackParamList = {
+  Auth: undefined;
+  Projects: undefined;
+  ProjectDetail: { projectId: string };
 };
 
-export default function App() {
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const App = () => {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [booting, setBooting] = useState(true);
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      const stored = await AsyncStorage.getItem('bt_token');
+      if (!stored) {
+        setBooting(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${stored}` },
+        });
+        if (!res.ok) throw new Error('Session expired');
+        const data = (await res.json()) as { user: User };
+        setUser(data.user);
+        setToken(stored);
+      } catch {
+        await AsyncStorage.removeItem('bt_token');
+      } finally {
+        setBooting(false);
+      }
+    };
+    bootstrap();
+  }, []);
+
+  const handleAuthSuccess = async (newToken: string, newUser: User) => {
+    await AsyncStorage.setItem('bt_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+  };
+
+  const handleLogout = async () => {
+    if (token) {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => null);
+    }
+    await AsyncStorage.removeItem('bt_token');
+    setToken(null);
+    setUser(null);
+  };
+
+  if (booting) return null;
+
   return (
-    <SafeAreaView style={styles.screen}>
-      <StatusBar style="light" />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>BuildTrack</Text>
-        <Text style={styles.subtitle}>Project overview</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.label}>Active Project</Text>
-          <Text style={styles.value}>Maple St</Text>
-        </View>
-
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <View style={[styles.card, { flex: 1 }]}> 
-            <Text style={styles.label}>Actual</Text>
-            <Text style={styles.value}>$218k</Text>
-          </View>
-          <View style={[styles.card, { flex: 1 }]}> 
-            <Text style={styles.label}>Variance</Text>
-            <Text style={[styles.value, { color: '#22c55e' }]}>$202k</Text>
-          </View>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: '#0f172a' }]}> 
-          <Text style={[styles.label, { marginBottom: 8 }]}>Tasks Due Soon</Text>
-          {['Foundation pour', 'Framing begins', 'Roofing delivery'].map((t) => (
-            <View key={t} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#1f2937' }}>
-              <Text style={{ color: '#e2e8f0', fontWeight: '600' }}>{t}</Text>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>Due Feb 14</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={[styles.card, { backgroundColor: '#0f172a' }]}> 
-          <Text style={[styles.label, { marginBottom: 8 }]}>Recent Expenses</Text>
-          {['Concrete Supply', 'Riverstone Lumber', 'Peak Electrical'].map((t) => (
-            <View key={t} style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#1f2937' }}>
-              <Text style={{ color: '#e2e8f0', fontWeight: '600' }}>{t}</Text>
-              <Text style={{ color: '#f97316', fontSize: 12 }}>-$12,480</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!token || !user ? (
+          <Stack.Screen name="Auth">
+            {() => <AuthScreen onAuthSuccess={handleAuthSuccess} />}
+          </Stack.Screen>
+        ) : (
+          <>
+            <Stack.Screen name="Projects">
+              {({ navigation }) => (
+                <ProjectsScreen
+                  token={token}
+                  onLogout={handleLogout}
+                  onSelectProject={(id) => navigation.navigate('ProjectDetail', { projectId: id })}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="ProjectDetail">
+              {({ route, navigation }) => (
+                <ProjectDetailScreen
+                  token={token}
+                  projectId={route.params.projectId}
+                  onBack={() => navigation.goBack()}
+                />
+              )}
+            </Stack.Screen>
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
   );
-}
+};
+
+export default App;
