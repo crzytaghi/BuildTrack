@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getApiBase } from '../lib/api';
 import type { AuthResponse, User } from '../types';
 
@@ -42,7 +43,8 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0b1118', padding: 24, justifyContent: 'center' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1, padding: 24, justifyContent: 'center' }}>
       <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '700' }}>BuildTrack</Text>
       <Text style={{ color: '#94a3b8', marginTop: 6 }}>Sign in to manage projects.</Text>
 
@@ -113,7 +115,8 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
           {view === 'login' ? 'Login' : 'Create Account'}
         </Text>
       </TouchableOpacity>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 

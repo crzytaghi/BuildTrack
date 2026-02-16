@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getApiBase } from '../lib/api';
 import type { ProjectItem, ProjectStatus } from '../types';
 
@@ -73,7 +74,8 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout }: Props) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0b1118', padding: 20 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
+      <View style={{ flex: 1, padding: 20 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700' }}>Projects</Text>
         <TouchableOpacity onPress={onLogout}>
@@ -130,7 +132,8 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout }: Props) => {
           />
         )}
       </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 };
 

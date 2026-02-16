@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AuthScreen from './src/screens/AuthScreen';
+import DashboardScreen from './src/screens/DashboardScreen';
 import ProjectsScreen from './src/screens/ProjectsScreen';
 import ProjectDetailScreen from './src/screens/ProjectDetailScreen';
 import type { User } from './src/types';
@@ -12,6 +13,7 @@ const API_BASE = getApiBase();
 
 export type RootStackParamList = {
   Auth: undefined;
+  Dashboard: undefined;
   Projects: undefined;
   ProjectDetail: { projectId: string };
 };
@@ -76,6 +78,14 @@ const App = () => {
           </Stack.Screen>
         ) : (
           <>
+            <Stack.Screen name="Dashboard">
+              {({ navigation }) => (
+                <DashboardScreen
+                  onGoProjects={() => navigation.navigate('Projects')}
+                  onLogout={handleLogout}
+                />
+              )}
+            </Stack.Screen>
             <Stack.Screen name="Projects">
               {({ navigation }) => (
                 <ProjectsScreen

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getApiBase } from '../lib/api';
 import type { ExpenseItem, ProjectItem, TaskItem } from '../types';
 
@@ -90,27 +91,34 @@ const ProjectDetailScreen = ({ token, projectId, onBack }: Props) => {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0b1118', padding: 20 }}>
-        <Text style={{ color: '#94a3b8' }}>Loading project...</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: '#94a3b8' }}>Loading project...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error || !project) {
     return (
-      <View style={{ flex: 1, backgroundColor: '#0b1118', padding: 20 }}>
-        <Text style={{ color: '#fecaca' }}>{error ?? 'Project not found'}</Text>
-      </View>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
+        <View style={{ padding: 20 }}>
+          <Text style={{ color: '#fecaca' }}>{error ?? 'Project not found'}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#0b1118' }} contentContainerStyle={{ padding: 20 }}>
-      <TouchableOpacity onPress={onBack}>
-        <Text style={{ color: '#e2e8f0' }}>← Back to Projects</Text>
-      </TouchableOpacity>
-      <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700', marginTop: 12 }}>{project.name}</Text>
-      <Text style={{ color: '#94a3b8', marginBottom: 12 }}>Status: {project.status}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+        <TouchableOpacity onPress={onBack}>
+          <Text style={{ color: '#e2e8f0' }}>← Back to Projects</Text>
+        </TouchableOpacity>
+        <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700', marginTop: 12 }}>
+          {project.name}
+        </Text>
+        <Text style={{ color: '#94a3b8', marginBottom: 12 }}>Status: {project.status}</Text>
 
       <View style={{ backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -212,7 +220,8 @@ const ProjectDetailScreen = ({ token, projectId, onBack }: Props) => {
           ))
         )}
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
