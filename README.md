@@ -50,3 +50,4 @@ npm run prisma:migrate
 - Expense approvals fields in `expenses`
 - Subcontractor portal (future app)
 - Notifications and real-time updates
+- Company setup (first-login) in MVP, multi-user per company post-MVP
