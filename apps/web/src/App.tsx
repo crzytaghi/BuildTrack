@@ -11,6 +11,7 @@ import {
 import AuthCard from './components/AuthCard';
 import AuthLogin from './components/AuthLogin';
 import AuthSignup from './components/AuthSignup';
+import CompanySetupScreen from './components/CompanySetupScreen';
 import DashboardView from './components/DashboardView';
 import ProjectsView from './components/ProjectsView';
 import ProjectDetailView from './components/ProjectDetailView';
@@ -65,6 +66,8 @@ const AppShell = () => {
     budgetTotal: '',
     notes: '',
   });
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [companySetupRequired, setCompanySetupRequired] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -83,6 +86,20 @@ const AppShell = () => {
         const data = (await res.json()) as { user: User };
         setUser(data.user);
         setToken(currentToken);
+        const companyRes = await fetch(`${API_BASE}/company/me`, {
+          headers: { Authorization: `Bearer ${currentToken}` },
+        });
+        if (companyRes.ok) {
+          const companyData = (await companyRes.json()) as {
+            company: { name: string; companySetupComplete: boolean } | null;
+          };
+          if (companyData.company?.companySetupComplete) {
+            setCompanyName(companyData.company.name);
+            setCompanySetupRequired(false);
+          } else {
+            setCompanySetupRequired(true);
+          }
+        }
       } catch {
         localStorage.removeItem('bt_token');
         setToken(null);
@@ -133,6 +150,9 @@ const AppShell = () => {
       localStorage.setItem('bt_token', data.token);
       setToken(data.token);
       setUser(data.user);
+      if (path === 'signup') {
+        setCompanySetupRequired(true);
+      }
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
         throw new Error('Unable to reach the API. Is it running on port 4000?');
@@ -274,6 +294,31 @@ const AppShell = () => {
     );
   }
 
+  if (companySetupRequired) {
+    return (
+      <CompanySetupScreen
+        onSubmit={async (name) => {
+          const res = await fetch(`${API_BASE}/company/setup`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name }),
+          });
+          if (!res.ok) {
+            return;
+          }
+          const data = (await res.json()) as {
+            company: { name: string; companySetupComplete: boolean };
+          };
+          setCompanyName(data.company.name);
+          setCompanySetupRequired(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-ink text-slate-100">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
@@ -305,6 +350,7 @@ const AppShell = () => {
               element={
                 <DashboardView
                   userName={user?.name ?? 'Builder'}
+                  companyName={companyName ?? 'Company'}
                   kpis={kpis}
                   onLogout={handleLogout}
                   headerActions={
