@@ -11,6 +11,7 @@ model Company {
   id        String   @id @default(uuid())
   name      String
   timezone  String?  
+  companySetupComplete Boolean @default(false)
   users     User[]
   roles     Role[]
   projects  Project[]
