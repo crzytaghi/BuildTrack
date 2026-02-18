@@ -55,6 +55,7 @@ const AppShell = () => {
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [projectsError, setProjectsError] = useState<string | null>(null);
@@ -245,6 +246,7 @@ const AppShell = () => {
               setSignupName('');
               setSignupEmail('');
               setSignupPassword('');
+              setSignupConfirmPassword('');
             }}
             error={error}
           >
@@ -269,11 +271,17 @@ const AppShell = () => {
                 name={signupName}
                 email={signupEmail}
                 password={signupPassword}
+                confirmPassword={signupConfirmPassword}
                 onNameChange={setSignupName}
                 onEmailChange={setSignupEmail}
                 onPasswordChange={setSignupPassword}
+                onConfirmPasswordChange={setSignupConfirmPassword}
                 onSubmit={async () => {
                   try {
+                    if (signupPassword !== signupConfirmPassword) {
+                      setError('Passwords do not match');
+                      return;
+                    }
                     await handleAuth('signup', {
                       name: signupName,
                       email: signupEmail,
@@ -282,6 +290,7 @@ const AppShell = () => {
                     setSignupName('');
                     setSignupEmail('');
                     setSignupPassword('');
+                    setSignupConfirmPassword('');
                   } catch (err) {
                     setError(err instanceof Error ? err.message : 'Signup failed');
                   }

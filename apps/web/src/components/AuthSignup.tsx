@@ -4,9 +4,11 @@ type Props = {
   name: string;
   email: string;
   password: string;
+  confirmPassword: string;
   onNameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
+  onConfirmPasswordChange: (value: string) => void;
   onSubmit: () => Promise<void>;
 };
 
@@ -14,9 +16,11 @@ const AuthSignup = ({
   name,
   email,
   password,
+  confirmPassword,
   onNameChange,
   onEmailChange,
   onPasswordChange,
+  onConfirmPasswordChange,
   onSubmit,
 }: Props) => (
   <form
@@ -57,6 +61,18 @@ const AuthSignup = ({
           minLength={8}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
+          className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+        />
+      </div>
+      <div>
+        <label className="text-xs uppercase tracking-wide text-slate-400">Confirm Password</label>
+        <input
+          name="confirmPassword"
+          type="password"
+          required
+          minLength={8}
+          value={confirmPassword}
+          onChange={(event) => onConfirmPasswordChange(event.target.value)}
           className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
         />
       </div>
