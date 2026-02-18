@@ -7,7 +7,7 @@ import type { AuthResponse, User } from '../types';
 const API_BASE = getApiBase();
 
 type Props = {
-  onAuthSuccess: (token: string, user: User) => void;
+  onAuthSuccess: (token: string, user: User, fromSignup: boolean) => void;
 };
 
 const AuthScreen = ({ onAuthSuccess }: Props) => {
@@ -15,11 +15,15 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     setError(null);
     try {
+      if (view === 'signup' && password !== confirmPassword) {
+        throw new Error('Passwords do not match');
+      }
       const payload = view === 'signup' ? { name, email, password } : { email, password };
       const res = await fetch(`${API_BASE}/auth/${view}`, {
         method: 'POST',
@@ -33,10 +37,11 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
         throw new Error(data.error ?? 'Authentication failed');
       }
       const data = (await res.json()) as AuthResponse;
-      onAuthSuccess(data.token, data.user);
+      onAuthSuccess(data.token, data.user, view === 'signup');
       setName('');
       setEmail('');
       setPassword('');
+      setConfirmPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     }
@@ -58,6 +63,7 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
               setName('');
               setEmail('');
               setPassword('');
+              setConfirmPassword('');
             }}
             style={{
               flex: 1,
@@ -106,6 +112,16 @@ const AuthScreen = ({ onAuthSuccess }: Props) => {
         secureTextEntry
         style={{ marginTop: 16, backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
       />
+      {view === 'signup' && (
+        <TextInput
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Confirm password"
+          placeholderTextColor="#64748b"
+          secureTextEntry
+          style={{ marginTop: 16, backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
+        />
+      )}
 
       <TouchableOpacity
         onPress={submit}
