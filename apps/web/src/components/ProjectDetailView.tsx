@@ -291,7 +291,15 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
 
       <section className="grid grid-cols-[1fr_1fr] gap-6 px-8 pb-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="text-sm font-semibold text-slate-200">Tasks</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-200">Tasks</div>
+            <Link
+              to={`/tasks?projectId=${project.id}`}
+              className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+            >
+              View Project Tasks
+            </Link>
+          </div>
           <div className="mt-4 divide-y divide-slate-800 text-sm">
             {tasks.length === 0 ? (
               <div className="text-slate-400">No tasks yet.</div>

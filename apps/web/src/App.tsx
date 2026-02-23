@@ -15,8 +15,9 @@ import CompanySetupScreen from './components/CompanySetupScreen';
 import DashboardView from './components/DashboardView';
 import ProjectsView from './components/ProjectsView';
 import ProjectDetailView from './components/ProjectDetailView';
+import TasksView from './components/TasksView';
 import { getApiBase } from './lib/api';
-import type { ProjectFormState, ProjectItem, ProjectStatus } from './types/projects';
+import type { ProjectFormState, ProjectItem, ProjectStatus, TaskItem } from './types/projects';
 
 type User = { id: string; email: string; name: string };
 
@@ -71,6 +72,22 @@ const AppShell = () => {
   const [companySetupRequired, setCompanySetupRequired] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState<string | null>(null);
+  const [taskFilters, setTaskFilters] = useState({
+    projectId: '',
+    status: '',
+    fromDate: '',
+    toDate: '',
+  });
+  const [taskForm, setTaskForm] = useState({
+    title: '',
+    projectId: '',
+    status: 'todo' as TaskItem['status'],
+    dueDate: '',
+  });
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -113,10 +130,12 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    if (!token || !user || location.pathname !== '/projects') return;
+    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks')) return;
     const load = async () => {
-      setProjectsLoading(true);
-      setProjectsError(null);
+      if (location.pathname === '/projects') {
+        setProjectsLoading(true);
+        setProjectsError(null);
+      }
       try {
         const res = await fetch(`${API_BASE}/projects`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -127,11 +146,46 @@ const AppShell = () => {
       } catch (err) {
         setProjectsError(err instanceof Error ? err.message : 'Unable to load projects');
       } finally {
-        setProjectsLoading(false);
+        if (location.pathname === '/projects') {
+          setProjectsLoading(false);
+        }
       }
     };
     load();
   }, [location.pathname, token, user]);
+
+  useEffect(() => {
+    if (!token || !user || location.pathname !== '/tasks') return;
+    if (location.search) {
+      const params = new URLSearchParams(location.search);
+      const projectId = params.get('projectId') ?? '';
+      if (projectId && projectId !== taskFilters.projectId) {
+        setTaskFilters((prev) => ({ ...prev, projectId }));
+      }
+    }
+    const loadTasks = async () => {
+      setTasksLoading(true);
+      setTasksError(null);
+      try {
+        const params = new URLSearchParams();
+        if (taskFilters.projectId) params.set('projectId', taskFilters.projectId);
+        if (taskFilters.status) params.set('status', taskFilters.status);
+        if (taskFilters.fromDate) params.set('fromDate', taskFilters.fromDate);
+        if (taskFilters.toDate) params.set('toDate', taskFilters.toDate);
+        const res = await fetch(`${API_BASE}/tasks?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Unable to load tasks');
+        const data = (await res.json()) as { data: TaskItem[] };
+        setTasks(data.data);
+      } catch (err) {
+        setTasksError(err instanceof Error ? err.message : 'Unable to load tasks');
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+    loadTasks();
+  }, [location.pathname, taskFilters, token, user]);
 
   const handleAuth = async (path: 'login' | 'signup', payload: Record<string, string>) => {
     setError(null);
@@ -207,6 +261,61 @@ const AppShell = () => {
     resetProjectForm();
   };
 
+  const resetTaskForm = () => {
+    setTaskForm({ title: '', projectId: '', status: 'todo', dueDate: '' });
+    setEditingTaskId(null);
+  };
+
+  const handleTaskSubmit = async () => {
+    if (!token) return;
+    setTasksError(null);
+    if (!taskForm.title.trim()) {
+      setTasksError('Task title is required');
+      return;
+    }
+    if (!taskForm.projectId) {
+      setTasksError('Project is required');
+      return;
+    }
+    const method = editingTaskId ? 'PATCH' : 'POST';
+    const url = editingTaskId
+      ? `${API_BASE}/tasks/${editingTaskId}`
+      : `${API_BASE}/projects/${taskForm.projectId}/tasks`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: taskForm.title.trim(),
+        status: taskForm.status,
+        dueDate: taskForm.dueDate || undefined,
+      }),
+    });
+    if (!res.ok) {
+      setTasksError('Unable to save task');
+      return;
+    }
+    const data = (await res.json()) as { data: TaskItem };
+    setTasks((prev) => {
+      if (editingTaskId) {
+        return prev.map((item) => (item.id === data.data.id ? data.data : item));
+      }
+      return [data.data, ...prev];
+    });
+    resetTaskForm();
+  };
+
+  const selectTaskForEdit = (task: TaskItem) => {
+    setEditingTaskId(task.id);
+    setTaskForm({
+      title: task.title,
+      projectId: task.projectId,
+      status: task.status,
+      dueDate: task.dueDate ?? '',
+    });
+  };
   const handleLogout = async () => {
     if (token) {
       await fetch(`${API_BASE}/auth/logout`, {
@@ -388,6 +497,26 @@ const AppShell = () => {
             <Route
               path="/projects/:id"
               element={<ProjectDetailRoute token={token ?? ''} onLogout={handleLogout} />}
+            />
+            <Route
+              path="/tasks"
+              element={
+                <TasksView
+                  projects={projects}
+                  tasks={tasks}
+                  loading={tasksLoading}
+                  error={tasksError}
+                  filters={taskFilters}
+                  form={taskForm}
+                  editingTaskId={editingTaskId}
+                  onFilterChange={setTaskFilters}
+                  onFormChange={setTaskForm}
+                  onSubmit={handleTaskSubmit}
+                  onCancelEdit={resetTaskForm}
+                  onEditTask={selectTaskForEdit}
+                  onLogout={handleLogout}
+                />
+              }
             />
           </Routes>
         </main>

@@ -118,12 +118,16 @@ const ProjectsView = ({
         {loading ? (
           <div className="mt-4 text-sm text-slate-400">Loading projects...</div>
         ) : (
-          <div className="mt-4 divide-y divide-slate-800 text-sm">
+          <div className="mt-4 space-y-2 text-sm">
             {projects.length === 0 ? (
               <div className="text-slate-400">No projects yet.</div>
             ) : (
                 projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between py-3">
+                  <button
+                    key={project.id}
+                    className="group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition hover:bg-slate-800/70"
+                    onClick={() => onViewProject(project.id)}
+                  >
                     <div>
                       <div className="font-medium text-slate-100">{project.name}</div>
                       <div className="text-xs text-slate-400">
@@ -131,17 +135,12 @@ const ProjectsView = ({
                         {project.endDate || 'No end'}
                       </div>
                     </div>
-                    <button
-                      className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                      onClick={() => onViewProject(project.id)}
-                    >
-                      View
-                    </button>
-                  </div>
+                    <div className="text-xs text-slate-400 group-hover:text-slate-200">View</div>
+                  </button>
                 ))
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
       </div>
     </section>
   </>
