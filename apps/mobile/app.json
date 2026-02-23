@@ -3,13 +3,21 @@
     "name": "BuildTrack",
     "slug": "buildtrack",
     "scheme": "buildtrack",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"]
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }
