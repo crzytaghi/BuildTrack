@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import SlideMenu, { MenuItem } from '../components/SlideMenu';
 import { getApiBase } from '../lib/api';
 import type { ProjectItem, ProjectStatus } from '../types';
 
@@ -10,12 +11,14 @@ type Props = {
   token: string;
   onSelectProject: (id: string) => void;
   onLogout: () => void;
+  onNavigate: (route: string) => void;
 };
 
-const ProjectsScreen = ({ token, onSelectProject, onLogout }: Props) => {
+const ProjectsScreen = ({ token, onSelectProject, onLogout, onNavigate }: Props) => {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [form, setForm] = useState({
     name: '',
     status: 'planning' as ProjectStatus,
@@ -24,6 +27,18 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout }: Props) => {
     budgetTotal: '',
     notes: '',
   });
+
+  const items: MenuItem[] = [
+    { label: 'Dashboard', onPress: () => onNavigate('Dashboard') },
+    { label: 'Projects', onPress: () => onNavigate('Projects') },
+    { label: 'Tasks', onPress: () => onNavigate('Tasks') },
+    { label: 'Budget', onPress: () => onNavigate('Budget') },
+    { label: 'Expenses', onPress: () => onNavigate('Expenses') },
+    { label: 'Documents', onPress: () => onNavigate('Documents') },
+    { label: 'Reports', onPress: () => onNavigate('Reports') },
+    { label: 'Settings', onPress: () => onNavigate('Settings') },
+    { label: 'Log out', onPress: onLogout },
+  ];
 
   const loadProjects = async () => {
     setLoading(true);
@@ -76,63 +91,66 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout }: Props) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
       <View style={{ flex: 1, padding: 20 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700' }}>Projects</Text>
-        <TouchableOpacity onPress={onLogout}>
-          <Text style={{ color: '#e2e8f0' }}>Log out</Text>
-        </TouchableOpacity>
-      </View>
-
-      {error && (
-        <View style={{ marginTop: 12, backgroundColor: '#7f1d1d', padding: 10, borderRadius: 8 }}>
-          <Text style={{ color: '#fecaca' }}>{error}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700' }}>Projects</Text>
+          <TouchableOpacity onPress={() => setMenuOpen(true)}>
+            <Text style={{ color: '#e2e8f0', fontSize: 20 }}>☰</Text>
+          </TouchableOpacity>
         </View>
-      )}
 
-      <View style={{ marginTop: 16, backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
-        <Text style={{ color: '#e2e8f0', marginBottom: 10 }}>New Project</Text>
-        <TextInput
-          value={form.name}
-          onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-          placeholder="Project name"
-          placeholderTextColor="#64748b"
-          style={{ backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
-        />
-        <TextInput
-          value={form.status}
-          onChangeText={(value) => setForm((prev) => ({ ...prev, status: value as ProjectStatus }))}
-          placeholder="Status (planning/active/on_hold/completed)"
-          placeholderTextColor="#64748b"
-          style={{ marginTop: 12, backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
-        />
-        <TouchableOpacity
-          onPress={createProject}
-          style={{ marginTop: 12, backgroundColor: '#0ea5e9', padding: 12, borderRadius: 12, alignItems: 'center' }}
-        >
-          <Text style={{ color: '#0f172a', fontWeight: '700' }}>Create Project</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ flex: 1, marginTop: 16 }}>
-        {loading ? (
-          <Text style={{ color: '#94a3b8' }}>Loading projects...</Text>
-        ) : (
-          <FlatList
-            data={projects}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                onPress={() => onSelectProject(item.id)}
-                style={{ backgroundColor: '#111827', padding: 12, borderRadius: 12, marginBottom: 10 }}
-              >
-                <Text style={{ color: '#f8fafc', fontWeight: '600' }}>{item.name}</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 12 }}>{item.status}</Text>
-              </TouchableOpacity>
-            )}
-          />
+        {error && (
+          <View style={{ marginTop: 12, backgroundColor: '#7f1d1d', padding: 10, borderRadius: 8 }}>
+            <Text style={{ color: '#fecaca' }}>{error}</Text>
+          </View>
         )}
+
+        <View style={{ marginTop: 16, backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
+          <Text style={{ color: '#e2e8f0', marginBottom: 10 }}>New Project</Text>
+          <TextInput
+            value={form.name}
+            onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
+            placeholder="Project name"
+            placeholderTextColor="#64748b"
+            style={{ backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
+          />
+          <TextInput
+            value={form.status}
+            onChangeText={(value) => setForm((prev) => ({ ...prev, status: value as ProjectStatus }))}
+            placeholder="Status (planning/active/on_hold/completed)"
+            placeholderTextColor="#64748b"
+            style={{ marginTop: 12, backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
+          />
+          <TouchableOpacity
+            onPress={createProject}
+            style={{ marginTop: 12, backgroundColor: '#0ea5e9', padding: 12, borderRadius: 12, alignItems: 'center' }}
+          >
+            <Text style={{ color: '#0f172a', fontWeight: '700' }}>Create Project</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ flex: 1, marginTop: 16 }}>
+          {loading ? (
+            <Text style={{ color: '#94a3b8' }}>Loading projects...</Text>
+          ) : (
+            <FlatList
+              data={projects}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => onSelectProject(item.id)}
+                  style={{ backgroundColor: '#111827', padding: 14, borderRadius: 14, marginBottom: 12 }}
+                >
+                  <Text style={{ color: '#f8fafc', fontWeight: '600' }}>{item.name}</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
+                    {item.status} • {item.startDate || 'No start'} → {item.endDate || 'No end'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          )}
+        </View>
       </View>
-      </View>
+      <SlideMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={items} />
     </SafeAreaView>
   );
 };
