@@ -72,6 +72,7 @@ const AppShell = () => {
   const [companySetupRequired, setCompanySetupRequired] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState<string | null>(null);
@@ -84,10 +85,12 @@ const AppShell = () => {
   const [taskForm, setTaskForm] = useState({
     title: '',
     projectId: '',
-    status: 'todo' as TaskItem['status'],
+    status: '' as TaskItem['status'] | '',
     dueDate: '',
   });
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
+  const [taskSubmitAttempted, setTaskSubmitAttempted] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -262,12 +265,18 @@ const AppShell = () => {
   };
 
   const resetTaskForm = () => {
-    setTaskForm({ title: '', projectId: '', status: 'todo', dueDate: '' });
+    setTaskForm({ title: '', projectId: '', status: '', dueDate: '' });
     setEditingTaskId(null);
+    setTaskSubmitAttempted(false);
+  };
+  const closeTaskForm = () => {
+    resetTaskForm();
+    setTaskCreateOpen(false);
   };
 
   const handleTaskSubmit = async () => {
     if (!token) return;
+    setTaskSubmitAttempted(true);
     setTasksError(null);
     if (!taskForm.title.trim()) {
       setTasksError('Task title is required');
@@ -275,6 +284,14 @@ const AppShell = () => {
     }
     if (!taskForm.projectId) {
       setTasksError('Project is required');
+      return;
+    }
+    if (!editingTaskId && (!taskForm.status || !taskForm.dueDate)) {
+      setTasksError('All fields are required to create a task');
+      return;
+    }
+    if (editingTaskId && !taskForm.status) {
+      setTasksError('Status is required');
       return;
     }
     const method = editingTaskId ? 'PATCH' : 'POST';
@@ -304,10 +321,11 @@ const AppShell = () => {
       }
       return [data.data, ...prev];
     });
-    resetTaskForm();
+    closeTaskForm();
   };
 
   const selectTaskForEdit = (task: TaskItem) => {
+    setTaskCreateOpen(true);
     setEditingTaskId(task.id);
     setTaskForm({
       title: task.title,
@@ -440,28 +458,86 @@ const AppShell = () => {
   return (
     <div className="min-h-screen bg-ink text-slate-100">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
-      <div className="grid grid-cols-[260px_1fr]">
-        <aside className="h-screen border-r border-slate-800 bg-[#0b1118] p-6">
-          <div className="text-xl font-semibold tracking-tight font-display">BuildTrack</div>
-          <div className="mt-10 space-y-2 text-sm">
-            {nav.map((item) => (
-              <Link
-                key={item}
-                to={item === 'Dashboard' ? '/' : `/${item.toLowerCase()}`}
-                className={`block rounded-lg px-3 py-2 ${
-                  (item === 'Dashboard' && location.pathname === '/') ||
-                  (item === 'Projects' && location.pathname.startsWith('/projects')) ||
-                  (item !== 'Dashboard' && item !== 'Projects' && location.pathname === `/${item.toLowerCase()}`)
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400'
-                }`}
-              >
-                {item}
-              </Link>
-            ))}
+      <div className="md:grid md:grid-cols-[260px_1fr]">
+        <aside className="hidden h-screen flex-col border-r border-slate-800 bg-[#0b1118] p-6 md:flex">
+          <div>
+            <div className="text-xl font-semibold tracking-tight font-display">BuildTrack</div>
+            <div className="mt-10 space-y-2 text-sm">
+              {nav.map((item) => (
+                <Link
+                  key={item}
+                  to={item === 'Dashboard' ? '/' : `/${item.toLowerCase()}`}
+                  className={`block rounded-lg px-3 py-2 ${
+                    (item === 'Dashboard' && location.pathname === '/') ||
+                    (item === 'Projects' && location.pathname.startsWith('/projects')) ||
+                    (item !== 'Dashboard' && item !== 'Projects' && location.pathname === `/${item.toLowerCase()}`)
+                      ? 'bg-slate-800 text-white'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  {item}
+                </Link>
+              ))}
+            </div>
           </div>
+          <button
+            className="mt-auto rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
+            onClick={handleLogout}
+          >
+            Log out
+          </button>
         </aside>
         <main className="min-h-screen">
+          <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-800 bg-[#0b1118] px-4 py-4 md:hidden">
+            <button
+              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              ☰
+            </button>
+            <div className="text-lg font-semibold font-display">BuildTrack</div>
+            <div className="w-[40px]" />
+          </div>
+          {mobileNavOpen && (
+            <div className="fixed inset-0 z-50 md:hidden">
+              <button
+                className="absolute inset-0 bg-black/50"
+                onClick={() => setMobileNavOpen(false)}
+              />
+              <aside className="absolute left-0 top-0 h-full w-72 bg-[#0b1118] p-6 shadow-2xl">
+                <div>
+                  <div className="text-xl font-semibold tracking-tight font-display">BuildTrack</div>
+                  <div className="mt-8 space-y-2 text-sm">
+                    {nav.map((item) => (
+                      <Link
+                        key={item}
+                        to={item === 'Dashboard' ? '/' : `/${item.toLowerCase()}`}
+                        onClick={() => setMobileNavOpen(false)}
+                        className={`block rounded-lg px-3 py-2 ${
+                          (item === 'Dashboard' && location.pathname === '/') ||
+                          (item === 'Projects' && location.pathname.startsWith('/projects')) ||
+                          (item !== 'Dashboard' && item !== 'Projects' && location.pathname === `/${item.toLowerCase()}`)
+                            ? 'bg-slate-800 text-white'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {item}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="mt-auto rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
+                  onClick={() => {
+                    setMobileNavOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  Log out
+                </button>
+              </aside>
+            </div>
+          )}
           <Routes>
             <Route
               path="/"
@@ -470,7 +546,6 @@ const AppShell = () => {
                   userName={user?.name ?? 'Builder'}
                   companyName={companyName ?? 'Company'}
                   kpis={kpis}
-                  onLogout={handleLogout}
                   headerActions={
                     <button className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-slate-950 shadow">
                       Export CSV
@@ -490,7 +565,6 @@ const AppShell = () => {
                   onFormChange={setProjectForm}
                   onSubmit={handleProjectSubmit}
                   onViewProject={(id) => navigate(`/projects/${id}`)}
-                  onLogout={handleLogout}
                 />
               }
             />
@@ -508,11 +582,19 @@ const AppShell = () => {
                   error={tasksError}
                   filters={taskFilters}
                   form={taskForm}
+                  createOpen={taskCreateOpen || Boolean(editingTaskId)}
+                  submitAttempted={taskSubmitAttempted}
                   editingTaskId={editingTaskId}
                   onFilterChange={setTaskFilters}
                   onFormChange={setTaskForm}
+                  onCreateTask={() => {
+                    setTaskCreateOpen(true);
+                    setEditingTaskId(null);
+                    setTaskForm({ title: '', projectId: '', status: '', dueDate: '' });
+                    setTaskSubmitAttempted(false);
+                  }}
                   onSubmit={handleTaskSubmit}
-                  onCancelEdit={resetTaskForm}
+                  onCancelEdit={closeTaskForm}
                   onEditTask={selectTaskForEdit}
                   onLogout={handleLogout}
                 />

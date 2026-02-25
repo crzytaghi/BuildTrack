@@ -123,13 +123,13 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
 
   if (loading) {
     return (
-      <div className="px-8 py-6 text-sm text-slate-400">Loading project...</div>
+      <div className="px-4 py-6 text-sm text-slate-400 sm:px-6 lg:px-8">Loading project...</div>
     );
   }
 
   if (error || !project) {
     return (
-      <div className="px-8 py-6">
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
         <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error ?? 'Project not found'}
         </div>
@@ -139,7 +139,7 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
 
   return (
     <>
-      <header className="flex items-center justify-between bg-gradient-to-r from-slate-800 to-slate-900 px-8 py-6">
+      <header className="flex flex-col gap-4 bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
         <div>
           <Link
             to="/projects"
@@ -158,7 +158,7 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
         </button>
       </header>
 
-      <section className="grid grid-cols-[1.2fr_1fr] gap-6 px-8 py-6">
+      <section className="grid grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-200">Project Summary</div>
@@ -203,7 +203,7 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
               <div>Notes: {project.notes || 'None'}</div>
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
               <div className="col-span-2">
                 <label className="text-xs uppercase tracking-wide text-slate-400">Project Name</label>
                 <input
@@ -289,7 +289,7 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
         </div>
       </section>
 
-      <section className="grid grid-cols-[1fr_1fr] gap-6 px-8 pb-8">
+      <section className="grid grid-cols-1 gap-6 px-4 pb-8 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-200">Tasks</div>
@@ -337,7 +337,7 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
         </div>
       </section>
 
-      <section className="grid grid-cols-[1fr_1fr] gap-6 px-8 pb-12">
+      <section className="grid grid-cols-1 gap-6 px-4 pb-12 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="text-sm font-semibold text-slate-200">Budget (Coming Soon)</div>
           <div className="mt-3 text-sm text-slate-400">
