@@ -58,31 +58,61 @@ export const resetDb = () => {
 
 export const seed = () => {
   if (db.projects.size > 0) return;
-  const project: Project = {
-    id: 'proj_1',
-    name: 'Maple St',
-    status: 'active',
-    startDate: '2026-02-01',
-    budgetTotal: 420000,
-  };
-  db.projects.set(project.id, project);
 
-  const task: Task = {
-    id: 'task_1',
-    projectId: project.id,
-    title: 'Foundation pour',
-    status: 'todo',
-    dueDate: '2026-02-14',
-  };
-  db.tasks.set(task.id, task);
+  const TASK_TITLES = [
+    'Site survey', 'Permit submission', 'Demolition - interior walls',
+    'Foundation pour', 'Concrete curing', 'Steel beam installation',
+    'Framing - first floor', 'Framing - second floor', 'Roofing',
+    'Electrical rough-in', 'Plumbing rough-in', 'HVAC installation',
+    'Insulation', 'Drywall installation', 'Window installation',
+    'Door installation', 'MEP coordination', 'Waterproofing',
+    'Masonry work', 'Stucco application', 'Flooring - tile',
+    'Flooring - hardwood', 'Cabinet installation', 'Countertop installation',
+    'Painting - interior', 'Painting - exterior', 'Trim and finish work',
+    'Landscaping', 'Parking lot paving', 'Security system installation',
+    'Fire suppression system', 'Utility connections', 'Engineering review',
+    'Final inspection', 'Owner walkthrough', 'Final punch list',
+    'Certificate of occupancy', 'Project closeout', 'Signage installation',
+    'Elevator shaft rough-in',
+  ];
 
-  const expense: Expense = {
+  const STATUSES: Task['status'][] = ['todo', 'in_progress', 'blocked', 'done'];
+
+  const projects: Omit<Project, 'id'>[] = [
+    { name: 'Maple St Renovation',     status: 'active',    startDate: '2026-01-15', budgetTotal: 420000 },
+    { name: 'Harbor View Condos',       status: 'active',    startDate: '2025-11-01', budgetTotal: 2800000 },
+    { name: 'Downtown Office Complex',  status: 'planning',  startDate: '2026-04-01', budgetTotal: 5100000 },
+    { name: 'Riverside Warehouse',      status: 'on_hold',   startDate: '2025-09-15', budgetTotal: 875000 },
+    { name: 'Elmwood Medical Center',   status: 'active',    startDate: '2026-02-01', budgetTotal: 9200000 },
+    { name: 'Sunset Retail Strip',      status: 'planning',  startDate: '2026-06-01', budgetTotal: 1350000 },
+    { name: 'Lakeshore Apartments',     status: 'completed', startDate: '2025-03-01', endDate: '2025-12-20', budgetTotal: 3400000 },
+    { name: 'Tech Park Building B',     status: 'active',    startDate: '2026-01-05', budgetTotal: 6750000 },
+  ];
+
+  const taskCounts = [12, 5, 38, 21, 9, 40, 17, 28];
+
+  projects.forEach((def, i) => {
+    const projectId = `proj_${i + 1}`;
+    db.projects.set(projectId, { id: projectId, ...def });
+
+    for (let t = 0; t < taskCounts[i]; t++) {
+      const taskId = `task_${projectId}_${t + 1}`;
+      db.tasks.set(taskId, {
+        id: taskId,
+        projectId,
+        title: TASK_TITLES[t % TASK_TITLES.length],
+        status: STATUSES[t % STATUSES.length],
+        dueDate: `2026-0${(t % 9) + 1}-${String((t % 28) + 1).padStart(2, '0')}`,
+      });
+    }
+  });
+
+  db.expenses.set('exp_1', {
     id: 'exp_1',
-    projectId: project.id,
+    projectId: 'proj_1',
     amount: 12480,
     categoryId: 'cat_1',
     description: 'Concrete Supply Co.',
     expenseDate: '2026-02-10',
-  };
-  db.expenses.set(expense.id, expense);
+  });
 };
