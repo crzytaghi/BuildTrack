@@ -116,7 +116,7 @@ const TasksView = ({
     </section>
 
     <section className="px-4 pb-8 sm:px-6 lg:px-8">
-      <div className="flex h-[calc(100vh-380px)] min-h-[320px] flex-col rounded-2xl bg-panel p-6 shadow-lg">
+      <div className="rounded-2xl bg-panel p-6 shadow-lg">
         <div className="flex items-start justify-between">
           <div>
             <div className="text-sm font-semibold text-slate-200">Task List</div>
@@ -216,7 +216,7 @@ const TasksView = ({
             })()}
           </div>
         )}
-        <div className="mt-4 flex-1 overflow-y-auto">
+        <div className="mt-4">
           {loading ? (
             <div className="text-sm text-slate-400">Loading tasks...</div>
           ) : (

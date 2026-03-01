@@ -458,8 +458,8 @@ const AppShell = () => {
   return (
     <div className="min-h-screen bg-ink text-slate-100">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
-      <div className="md:grid md:grid-cols-[260px_1fr]">
-        <aside className="hidden h-screen flex-col border-r border-slate-800 bg-[#0b1118] p-6 md:flex">
+      <div className="md:grid md:h-screen md:grid-cols-[260px_1fr]">
+        <aside className="hidden h-full flex-col border-r border-slate-800 bg-[#0b1118] p-6 md:flex">
           <div>
             <div className="text-xl font-semibold tracking-tight font-display">BuildTrack</div>
             <div className="mt-10 space-y-2 text-sm">
@@ -487,7 +487,7 @@ const AppShell = () => {
             Log out
           </button>
         </aside>
-        <main className="min-h-screen">
+        <main className="overflow-y-auto md:h-full">
           <div className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-800 bg-[#0b1118] px-4 py-4 md:hidden">
             <button
               className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-200"
