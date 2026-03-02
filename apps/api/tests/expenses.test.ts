@@ -170,7 +170,7 @@ describe('Expenses API', () => {
       payload: {
         amount: 5000,
         categoryId: 'cat_2',
-        vendor: 'Rodriguez Framing LLC',
+        vendorId: 'vendor_1',
         description: 'Labor crew week 3',
         expenseDate: '2026-03-01',
       },
@@ -182,7 +182,7 @@ describe('Expenses API', () => {
     expect(body.data.projectId).toBe('proj_1');
     expect(body.data.amount).toBe(5000);
     expect(body.data.categoryId).toBe('cat_2');
-    expect(body.data.vendor).toBe('Rodriguez Framing LLC');
+    expect(body.data.vendorId).toBe('vendor_1');
     expect(body.data.description).toBe('Labor crew week 3');
     expect(body.data.expenseDate).toBe('2026-03-01');
     await app.close();
@@ -197,7 +197,7 @@ describe('Expenses API', () => {
       method: 'POST',
       url: '/api/v1/projects/proj_1/expenses',
       headers: { Authorization: `Bearer ${token}` },
-      payload: { amount: 750, categoryId: 'cat_5', vendor: 'City of Springfield', description: 'Permit renewal', expenseDate: '2026-03-02' },
+      payload: { amount: 750, categoryId: 'cat_5', vendorId: 'vendor_3', description: 'Permit renewal', expenseDate: '2026-03-02' },
     });
     const created = createRes.json().data;
 
@@ -221,14 +221,14 @@ describe('Expenses API', () => {
       method: 'POST',
       url: '/api/v1/projects/proj_1/expenses',
       headers: { Authorization: `Bearer ${token}` },
-      payload: { categoryId: 'cat_1', vendor: 'Test Vendor', description: 'Test', expenseDate: '2026-03-01' },
+      payload: { categoryId: 'cat_1', vendorId: 'vendor_1', description: 'Test', expenseDate: '2026-03-01' },
     });
 
     expect(res.statusCode).toBe(400);
     await app.close();
   });
 
-  it('rejects expense creation with missing vendor', async () => {
+  it('rejects expense creation with missing vendorId', async () => {
     const app = await buildApp();
     await app.ready();
     const token = await getToken(app);
@@ -253,7 +253,7 @@ describe('Expenses API', () => {
       method: 'POST',
       url: '/api/v1/projects/proj_1/expenses',
       headers: { Authorization: `Bearer ${token}` },
-      payload: { amount: 1000, categoryId: 'cat_1', vendor: 'Test Vendor', expenseDate: '2026-03-01' },
+      payload: { amount: 1000, categoryId: 'cat_1', vendorId: 'vendor_1', expenseDate: '2026-03-01' },
     });
 
     expect(res.statusCode).toBe(400);
@@ -269,7 +269,7 @@ describe('Expenses API', () => {
       method: 'POST',
       url: '/api/v1/projects/proj_1/expenses',
       headers: { Authorization: `Bearer ${token}` },
-      payload: { amount: 1000, categoryId: 'cat_1', vendor: 'Test Vendor', description: 'Test' },
+      payload: { amount: 1000, categoryId: 'cat_1', vendorId: 'vendor_1', description: 'Test' },
     });
 
     expect(res.statusCode).toBe(400);
@@ -299,14 +299,14 @@ describe('Expenses API', () => {
       method: 'PATCH',
       url: '/api/v1/expenses/exp_1',
       headers: { Authorization: `Bearer ${token}` },
-      payload: { amount: 99999, vendor: 'Updated Vendor Co.', description: 'Updated description' },
+      payload: { amount: 99999, vendorId: 'vendor_2', description: 'Updated description' },
     });
     const body = res.json();
 
     expect(res.statusCode).toBe(200);
     expect(body.data.id).toBe('exp_1');
     expect(body.data.amount).toBe(99999);
-    expect(body.data.vendor).toBe('Updated Vendor Co.');
+    expect(body.data.vendorId).toBe('vendor_2');
     expect(body.data.description).toBe('Updated description');
     // Unchanged fields are preserved
     expect(body.data.projectId).toBe('proj_1');
