@@ -35,3 +35,16 @@ export type ExpenseItem = {
   description?: string;
   expenseDate: string;
 };
+
+export type Category = {
+  id: string;
+  name: string;
+};
+
+export type ExpenseFormState = {
+  projectId: string;
+  description: string;
+  amount: string;
+  categoryId: string;
+  expenseDate: string;
+};

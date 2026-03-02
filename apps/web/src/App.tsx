@@ -16,8 +16,9 @@ import DashboardView from './components/DashboardView';
 import ProjectsView from './components/ProjectsView';
 import ProjectDetailView from './components/ProjectDetailView';
 import TasksView from './components/TasksView';
+import ExpensesView from './components/ExpensesView';
 import { getApiBase } from './lib/api';
-import type { ProjectFormState, ProjectItem, ProjectStatus, TaskItem } from './types/projects';
+import type { Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, TaskItem } from './types/projects';
 
 type User = { id: string; email: string; name: string };
 
@@ -91,6 +92,26 @@ const AppShell = () => {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [taskCreateOpen, setTaskCreateOpen] = useState(false);
   const [taskSubmitAttempted, setTaskSubmitAttempted] = useState(false);
+  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(false);
+  const [expensesError, setExpensesError] = useState<string | null>(null);
+  const [expenseFilters, setExpenseFilters] = useState({
+    projectId: '',
+    categoryId: '',
+    fromDate: '',
+    toDate: '',
+  });
+  const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({
+    projectId: '',
+    description: '',
+    amount: '',
+    categoryId: '',
+    expenseDate: '',
+  });
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [expenseCreateOpen, setExpenseCreateOpen] = useState(false);
+  const [expenseSubmitAttempted, setExpenseSubmitAttempted] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -133,7 +154,7 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks')) return;
+    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses')) return;
     const load = async () => {
       if (location.pathname === '/projects') {
         setProjectsLoading(true);
@@ -189,6 +210,49 @@ const AppShell = () => {
     };
     loadTasks();
   }, [location.pathname, taskFilters, token, user]);
+
+  useEffect(() => {
+    if (!token || !user || location.pathname !== '/expenses') return;
+    if (location.search) {
+      const params = new URLSearchParams(location.search);
+      const projectId = params.get('projectId') ?? '';
+      if (projectId && projectId !== expenseFilters.projectId) {
+        setExpenseFilters((prev) => ({ ...prev, projectId }));
+      }
+    }
+    const loadExpenses = async () => {
+      setExpensesLoading(true);
+      setExpensesError(null);
+      try {
+        const params = new URLSearchParams();
+        if (expenseFilters.projectId) params.set('projectId', expenseFilters.projectId);
+        if (expenseFilters.categoryId) params.set('categoryId', expenseFilters.categoryId);
+        if (expenseFilters.fromDate) params.set('fromDate', expenseFilters.fromDate);
+        if (expenseFilters.toDate) params.set('toDate', expenseFilters.toDate);
+        const res = await fetch(`${API_BASE}/expenses?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Unable to load expenses');
+        const data = (await res.json()) as { data: ExpenseItem[] };
+        setExpenses(data.data);
+      } catch (err) {
+        setExpensesError(err instanceof Error ? err.message : 'Unable to load expenses');
+      } finally {
+        setExpensesLoading(false);
+      }
+    };
+    loadExpenses();
+  }, [location.pathname, expenseFilters, token, user]);
+
+  useEffect(() => {
+    if (!token || !user || categories.length > 0) return;
+    fetch(`${API_BASE}/categories`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data: { data: Category[] }) => setCategories(data.data))
+      .catch(() => null);
+  }, [token, user, categories.length]);
 
   const handleAuth = async (path: 'login' | 'signup', payload: Record<string, string>) => {
     setError(null);
@@ -334,6 +398,83 @@ const AppShell = () => {
       dueDate: task.dueDate ?? '',
     });
   };
+  const resetExpenseForm = () => {
+    setExpenseForm({ projectId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+    setEditingExpenseId(null);
+    setExpenseSubmitAttempted(false);
+  };
+  const closeExpenseForm = () => {
+    resetExpenseForm();
+    setExpenseCreateOpen(false);
+  };
+
+  const handleExpenseSubmit = async () => {
+    if (!token) return;
+    setExpenseSubmitAttempted(true);
+    setExpensesError(null);
+    if (!expenseForm.projectId) {
+      setExpensesError('Project is required');
+      return;
+    }
+    if (!expenseForm.description.trim()) {
+      setExpensesError('Description is required');
+      return;
+    }
+    if (!expenseForm.amount || Number(expenseForm.amount) <= 0) {
+      setExpensesError('A valid amount is required');
+      return;
+    }
+    if (!expenseForm.categoryId) {
+      setExpensesError('Category is required');
+      return;
+    }
+    if (!expenseForm.expenseDate) {
+      setExpensesError('Date is required');
+      return;
+    }
+    const method = editingExpenseId ? 'PATCH' : 'POST';
+    const url = editingExpenseId
+      ? `${API_BASE}/expenses/${editingExpenseId}`
+      : `${API_BASE}/projects/${expenseForm.projectId}/expenses`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: Number(expenseForm.amount),
+        categoryId: expenseForm.categoryId,
+        description: expenseForm.description.trim(),
+        expenseDate: expenseForm.expenseDate,
+      }),
+    });
+    if (!res.ok) {
+      setExpensesError('Unable to save expense');
+      return;
+    }
+    const data = (await res.json()) as { data: ExpenseItem };
+    setExpenses((prev) => {
+      if (editingExpenseId) {
+        return prev.map((item) => (item.id === data.data.id ? data.data : item));
+      }
+      return [data.data, ...prev];
+    });
+    closeExpenseForm();
+  };
+
+  const selectExpenseForEdit = (expense: ExpenseItem) => {
+    setExpenseCreateOpen(true);
+    setEditingExpenseId(expense.id);
+    setExpenseForm({
+      projectId: expense.projectId,
+      description: expense.description ?? '',
+      amount: String(expense.amount),
+      categoryId: expense.categoryId,
+      expenseDate: expense.expenseDate,
+    });
+  };
+
   const handleLogout = async () => {
     if (token) {
       await fetch(`${API_BASE}/auth/logout`, {
@@ -571,6 +712,35 @@ const AppShell = () => {
             <Route
               path="/projects/:id"
               element={<ProjectDetailRoute token={token ?? ''} onLogout={handleLogout} />}
+            />
+            <Route
+              path="/expenses"
+              element={
+                <ExpensesView
+                  projects={projects}
+                  expenses={expenses}
+                  categories={categories}
+                  loading={expensesLoading}
+                  error={expensesError}
+                  filters={expenseFilters}
+                  form={expenseForm}
+                  createOpen={expenseCreateOpen || Boolean(editingExpenseId)}
+                  submitAttempted={expenseSubmitAttempted}
+                  editingExpenseId={editingExpenseId}
+                  onFilterChange={setExpenseFilters}
+                  onFormChange={setExpenseForm}
+                  onCreateExpense={() => {
+                    setExpenseCreateOpen(true);
+                    setEditingExpenseId(null);
+                    setExpenseForm({ projectId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+                    setExpenseSubmitAttempted(false);
+                  }}
+                  onSubmit={handleExpenseSubmit}
+                  onCancelEdit={closeExpenseForm}
+                  onEditExpense={selectExpenseForEdit}
+                  onLogout={handleLogout}
+                />
+              }
             />
             <Route
               path="/tasks"

@@ -148,6 +148,50 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     db.expenses.set(id, expense);
     reply.code(201).send({ data: expense });
   });
+
+  app.get('/expenses', { preHandler: requireAuth }, async (req) => {
+    const query = (req.query as {
+      projectId?: string;
+      categoryId?: string;
+      fromDate?: string;
+      toDate?: string;
+    }) ?? {};
+
+    const from = query.fromDate ? Date.parse(query.fromDate) : null;
+    const to = query.toDate ? Date.parse(query.toDate) : null;
+
+    const data = Array.from(db.expenses.values()).filter((expense) => {
+      if (query.projectId && expense.projectId !== query.projectId) return false;
+      if (query.categoryId && expense.categoryId !== query.categoryId) return false;
+      if (from && Date.parse(expense.expenseDate) < from) return false;
+      if (to && Date.parse(expense.expenseDate) > to) return false;
+      return true;
+    });
+    return { data };
+  });
+
+  app.patch('/expenses/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const expense = db.expenses.get(id);
+    if (!expense) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        amount: z.number().optional(),
+        categoryId: z.string().optional(),
+        description: z.string().optional(),
+        expenseDate: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const updated = { ...expense, ...body };
+    db.expenses.set(id, updated);
+    return { data: updated };
+  });
+
+  app.get('/categories', { preHandler: requireAuth }, async () => ({
+    data: Array.from(db.categories.values()),
+  }));
 };
 
 export default projectRoutes;
