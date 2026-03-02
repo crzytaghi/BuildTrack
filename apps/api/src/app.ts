@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import { ZodError } from 'zod';
 import crypto from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { db, seed, Session, User } from './store.js';
@@ -68,6 +69,14 @@ export const buildApp = async () => {
   await ensureCompany();
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
+  });
+
+  app.setErrorHandler((error, _req, reply) => {
+    if (error instanceof ZodError) {
+      reply.code(400).send({ error: 'Invalid request body', issues: error.issues });
+      return;
+    }
+    reply.code(500).send({ error: 'Internal server error' });
   });
 
   await app.register(healthRoutes, { prefix: API_PREFIX });
