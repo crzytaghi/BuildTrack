@@ -17,8 +17,9 @@ import ProjectsView from './components/ProjectsView';
 import ProjectDetailView from './components/ProjectDetailView';
 import TasksView from './components/TasksView';
 import ExpensesView from './components/ExpensesView';
+import VendorsView from './components/VendorsView';
 import { getApiBase } from './lib/api';
-import type { Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, TaskItem } from './types/projects';
+import type { Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, TaskItem, VendorFormState, VendorItem } from './types/projects';
 
 type User = { id: string; email: string; name: string };
 
@@ -32,6 +33,7 @@ const nav = [
   'Tasks',
   'Budget',
   'Expenses',
+  'Vendors',
   'Documents',
   'Reports',
   'Settings',
@@ -103,7 +105,7 @@ const AppShell = () => {
   });
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({
     projectId: '',
-    vendor: '',
+    vendorId: '',
     description: '',
     amount: '',
     categoryId: '',
@@ -113,6 +115,20 @@ const AppShell = () => {
   const [expenseCreateOpen, setExpenseCreateOpen] = useState(false);
   const [expenseSubmitAttempted, setExpenseSubmitAttempted] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [vendors, setVendors] = useState<VendorItem[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+  const [vendorsError, setVendorsError] = useState<string | null>(null);
+  const [vendorForm, setVendorForm] = useState<VendorFormState>({
+    name: '',
+    trade: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    notes: '',
+  });
+  const [editingVendorId, setEditingVendorId] = useState<string | null>(null);
+  const [vendorCreateOpen, setVendorCreateOpen] = useState(false);
+  const [vendorSubmitAttempted, setVendorSubmitAttempted] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -155,7 +171,7 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses')) return;
+    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses' && location.pathname !== '/vendors')) return;
     const load = async () => {
       if (location.pathname === '/projects') {
         setProjectsLoading(true);
@@ -246,6 +262,34 @@ const AppShell = () => {
   }, [location.pathname, expenseFilters, token, user]);
 
   useEffect(() => {
+    if (!token || !user || location.pathname !== '/vendors') return;
+    const loadVendors = async () => {
+      setVendorsLoading(true);
+      setVendorsError(null);
+      try {
+        const res = await fetch(`${API_BASE}/vendors`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error('Unable to load vendors');
+        const data = (await res.json()) as { data: VendorItem[] };
+        setVendors(data.data);
+        const expRes = await fetch(`${API_BASE}/expenses`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (expRes.ok) {
+          const expData = (await expRes.json()) as { data: ExpenseItem[] };
+          setExpenses(expData.data);
+        }
+      } catch (err) {
+        setVendorsError(err instanceof Error ? err.message : 'Unable to load vendors');
+      } finally {
+        setVendorsLoading(false);
+      }
+    };
+    loadVendors();
+  }, [location.pathname, token, user]);
+
+  useEffect(() => {
     if (!token || !user || categories.length > 0) return;
     fetch(`${API_BASE}/categories`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -254,6 +298,16 @@ const AppShell = () => {
       .then((data: { data: Category[] }) => setCategories(data.data))
       .catch(() => null);
   }, [token, user, categories.length]);
+
+  useEffect(() => {
+    if (!token || !user || vendors.length > 0) return;
+    fetch(`${API_BASE}/vendors`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data: { data: VendorItem[] }) => setVendors(data.data))
+      .catch(() => null);
+  }, [token, user, vendors.length]);
 
   const handleAuth = async (path: 'login' | 'signup', payload: Record<string, string>) => {
     setError(null);
@@ -399,8 +453,9 @@ const AppShell = () => {
       dueDate: task.dueDate ?? '',
     });
   };
+
   const resetExpenseForm = () => {
-    setExpenseForm({ projectId: '', vendor: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+    setExpenseForm({ projectId: '', vendorId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
     setEditingExpenseId(null);
     setExpenseSubmitAttempted(false);
   };
@@ -417,7 +472,7 @@ const AppShell = () => {
       setExpensesError('Project is required');
       return;
     }
-    if (!expenseForm.vendor.trim()) {
+    if (!expenseForm.vendorId) {
       setExpensesError('Vendor is required');
       return;
     }
@@ -450,7 +505,7 @@ const AppShell = () => {
       body: JSON.stringify({
         amount: Number(expenseForm.amount),
         categoryId: expenseForm.categoryId,
-        vendor: expenseForm.vendor.trim(),
+        vendorId: expenseForm.vendorId,
         description: expenseForm.description.trim(),
         expenseDate: expenseForm.expenseDate,
       }),
@@ -474,11 +529,75 @@ const AppShell = () => {
     setEditingExpenseId(expense.id);
     setExpenseForm({
       projectId: expense.projectId,
-      vendor: expense.vendor,
+      vendorId: expense.vendorId,
       description: expense.description,
       amount: String(expense.amount),
       categoryId: expense.categoryId,
       expenseDate: expense.expenseDate,
+    });
+  };
+
+  const resetVendorForm = () => {
+    setVendorForm({ name: '', trade: '', contactName: '', phone: '', email: '', notes: '' });
+    setEditingVendorId(null);
+    setVendorSubmitAttempted(false);
+  };
+  const closeVendorForm = () => {
+    resetVendorForm();
+    setVendorCreateOpen(false);
+  };
+
+  const handleVendorSubmit = async () => {
+    if (!token) return;
+    setVendorSubmitAttempted(true);
+    setVendorsError(null);
+    if (!vendorForm.name.trim()) {
+      setVendorsError('Vendor name is required');
+      return;
+    }
+    const method = editingVendorId ? 'PATCH' : 'POST';
+    const url = editingVendorId
+      ? `${API_BASE}/vendors/${editingVendorId}`
+      : `${API_BASE}/vendors`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: vendorForm.name.trim(),
+        trade: vendorForm.trade || undefined,
+        contactName: vendorForm.contactName || undefined,
+        phone: vendorForm.phone || undefined,
+        email: vendorForm.email || undefined,
+        notes: vendorForm.notes || undefined,
+      }),
+    });
+    if (!res.ok) {
+      setVendorsError('Unable to save vendor');
+      return;
+    }
+    const data = (await res.json()) as { data: VendorItem };
+    setVendors((prev) => {
+      if (editingVendorId) {
+        return prev.map((item) => (item.id === data.data.id ? data.data : item));
+      }
+      return [data.data, ...prev];
+    });
+    closeVendorForm();
+  };
+
+  const selectVendorForEdit = (vendor: VendorItem) => {
+    setVendorCreateOpen(true);
+    setEditingVendorId(vendor.id);
+    setVendorForm({
+      name: vendor.name,
+      trade: vendor.trade ?? '',
+      contactName: vendor.contactName ?? '',
+      phone: vendor.phone ?? '',
+      email: vendor.email ?? '',
+      notes: vendor.notes ?? '',
     });
   };
 
@@ -727,6 +846,7 @@ const AppShell = () => {
                   projects={projects}
                   expenses={expenses}
                   categories={categories}
+                  vendors={vendors}
                   loading={expensesLoading}
                   error={expensesError}
                   filters={expenseFilters}
@@ -739,7 +859,7 @@ const AppShell = () => {
                   onCreateExpense={() => {
                     setExpenseCreateOpen(true);
                     setEditingExpenseId(null);
-                    setExpenseForm({ projectId: '', vendor: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+                    setExpenseForm({ projectId: '', vendorId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
                     setExpenseSubmitAttempted(false);
                   }}
                   onSubmit={handleExpenseSubmit}
@@ -773,6 +893,32 @@ const AppShell = () => {
                   onSubmit={handleTaskSubmit}
                   onCancelEdit={closeTaskForm}
                   onEditTask={selectTaskForEdit}
+                  onLogout={handleLogout}
+                />
+              }
+            />
+            <Route
+              path="/vendors"
+              element={
+                <VendorsView
+                  vendors={vendors}
+                  expenses={expenses}
+                  loading={vendorsLoading}
+                  error={vendorsError}
+                  form={vendorForm}
+                  editingVendorId={editingVendorId}
+                  createOpen={vendorCreateOpen || Boolean(editingVendorId)}
+                  submitAttempted={vendorSubmitAttempted}
+                  onFormChange={setVendorForm}
+                  onCreateVendor={() => {
+                    setVendorCreateOpen(true);
+                    setEditingVendorId(null);
+                    setVendorForm({ name: '', trade: '', contactName: '', phone: '', email: '', notes: '' });
+                    setVendorSubmitAttempted(false);
+                  }}
+                  onSubmit={handleVendorSubmit}
+                  onCancelEdit={closeVendorForm}
+                  onEditVendor={selectVendorForEdit}
                   onLogout={handleLogout}
                 />
               }

@@ -27,12 +27,31 @@ export type TaskItem = {
   dueDate?: string;
 };
 
+export type VendorItem = {
+  id: string;
+  name: string;
+  trade?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+};
+
+export type VendorFormState = {
+  name: string;
+  trade: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  notes: string;
+};
+
 export type ExpenseItem = {
   id: string;
   projectId: string;
   amount: number;
   categoryId: string;
-  vendor: string;
+  vendorId: string;
   description: string;
   expenseDate: string;
 };
@@ -44,7 +63,7 @@ export type Category = {
 
 export type ExpenseFormState = {
   projectId: string;
-  vendor: string;
+  vendorId: string;
   description: string;
   amount: string;
   categoryId: string;

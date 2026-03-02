@@ -138,7 +138,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .object({
         amount: z.number(),
         categoryId: z.string(),
-        vendor: z.string().min(1),
+        vendorId: z.string(),
         description: z.string().min(1),
         expenseDate: z.string(),
       })
@@ -180,7 +180,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .object({
         amount: z.number().optional(),
         categoryId: z.string().optional(),
-        vendor: z.string().min(1).optional(),
+        vendorId: z.string().optional(),
         description: z.string().min(1).optional(),
         expenseDate: z.string().optional(),
       })
@@ -194,6 +194,61 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
   app.get('/categories', { preHandler: requireAuth }, async () => ({
     data: Array.from(db.categories.values()),
   }));
+
+  app.get('/vendors', { preHandler: requireAuth }, async () => ({
+    data: Array.from(db.vendors.values()),
+  }));
+
+  app.post('/vendors', { preHandler: requireAuth }, async (req, reply) => {
+    const body = z
+      .object({
+        name: z.string().min(1),
+        trade: z.string().optional(),
+        contactName: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const id = `vendor_${Date.now()}`;
+    const vendor = { id, ...body };
+    db.vendors.set(id, vendor);
+    reply.code(201).send({ data: vendor });
+  });
+
+  app.patch('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const vendor = db.vendors.get(id);
+    if (!vendor) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        name: z.string().min(1).optional(),
+        trade: z.string().optional(),
+        contactName: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const updated = { ...vendor, ...body };
+    db.vendors.set(id, updated);
+    return { data: updated };
+  });
+
+  app.get('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const vendor = db.vendors.get(id);
+    if (!vendor) return reply.code(404).send({ error: 'Not found' });
+
+    const vendorExpenses = Array.from(db.expenses.values()).filter((e) => e.vendorId === id);
+    const totalSpend = vendorExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const expenseCount = vendorExpenses.length;
+
+    return { data: { ...vendor, totalSpend, expenseCount } };
+  });
 };
 
 export default projectRoutes;

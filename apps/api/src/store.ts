@@ -31,12 +31,22 @@ export type Task = {
   dueDate?: string;
 };
 
+export type Vendor = {
+  id: string;
+  name: string;
+  trade?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+};
+
 export type Expense = {
   id: string;
   projectId: string;
   amount: number;
   categoryId: string;
-  vendor: string;
+  vendorId: string;
   description: string;
   expenseDate: string;
 };
@@ -53,6 +63,7 @@ export const db = {
   tasks: new Map<string, Task>(),
   expenses: new Map<string, Expense>(),
   categories: new Map<string, Category>(),
+  vendors: new Map<string, Vendor>(),
 };
 
 export const resetDb = () => {
@@ -62,6 +73,7 @@ export const resetDb = () => {
   db.tasks.clear();
   db.expenses.clear();
   db.categories.clear();
+  db.vendors.clear();
 };
 
 export const seed = () => {
@@ -125,22 +137,36 @@ export const seed = () => {
   ];
   categories.forEach((c) => db.categories.set(c.id, c));
 
+  const vendorSeeds: Vendor[] = [
+    { id: 'vendor_1',  name: 'Concrete Supply Co.',    trade: 'Materials' },
+    { id: 'vendor_2',  name: 'Rodriguez Framing LLC',  trade: 'Labor' },
+    { id: 'vendor_3',  name: 'City of Springfield',    trade: 'Permits & Fees' },
+    { id: 'vendor_4',  name: 'Pacific Electrical LLC', trade: 'Electrical' },
+    { id: 'vendor_5',  name: 'Heavy Lift Rentals',     trade: 'Equipment' },
+    { id: 'vendor_6',  name: 'MedTech HVAC Systems',   trade: 'HVAC' },
+    { id: 'vendor_7',  name: 'CoreSteel Fabricators',  trade: 'Steel' },
+    { id: 'vendor_8',  name: 'Atlas Equipment Rentals', trade: 'Equipment' },
+    { id: 'vendor_9',  name: 'Western Lumber Co.',     trade: 'Materials' },
+    { id: 'vendor_10', name: 'Summit Roofing Inc.',    trade: 'Labor' },
+  ];
+  vendorSeeds.forEach((v) => db.vendors.set(v.id, v));
+
   const expenseSeeds: Expense[] = [
-    { id: 'exp_1',  projectId: 'proj_1', amount: 12480,  categoryId: 'cat_1', vendor: 'Concrete Supply Co.',     description: 'Foundation pour materials',       expenseDate: '2026-02-10' },
-    { id: 'exp_2',  projectId: 'proj_1', amount: 3200,   categoryId: 'cat_2', vendor: 'Rodriguez Framing LLC',   description: 'Framing crew — week 1',           expenseDate: '2026-02-14' },
-    { id: 'exp_3',  projectId: 'proj_1', amount: 875,    categoryId: 'cat_5', vendor: 'City of Springfield',     description: 'Building permit fee',             expenseDate: '2026-01-20' },
-    { id: 'exp_4',  projectId: 'proj_2', amount: 48000,  categoryId: 'cat_4', vendor: 'Pacific Electrical LLC',  description: 'Electrical rough-in, phase 1',    expenseDate: '2026-01-15' },
-    { id: 'exp_5',  projectId: 'proj_2', amount: 22750,  categoryId: 'cat_1', vendor: 'Western Lumber Co.',      description: 'Lumber & framing materials',       expenseDate: '2026-01-28' },
-    { id: 'exp_6',  projectId: 'proj_2', amount: 9600,   categoryId: 'cat_3', vendor: 'Heavy Lift Rentals',      description: 'Crane rental — 3 days',           expenseDate: '2026-02-03' },
-    { id: 'exp_7',  projectId: 'proj_4', amount: 15300,  categoryId: 'cat_1', vendor: 'Metro Steel Supply',      description: 'Steel roofing panels',             expenseDate: '2025-10-10' },
-    { id: 'exp_8',  projectId: 'proj_4', amount: 6700,   categoryId: 'cat_2', vendor: 'Summit Roofing Inc.',     description: 'Roofing crew labor',              expenseDate: '2025-10-18' },
-    { id: 'exp_9',  projectId: 'proj_5', amount: 87500,  categoryId: 'cat_4', vendor: 'MedTech HVAC Systems',    description: 'HVAC installation, floors 1–3',   expenseDate: '2026-02-20' },
-    { id: 'exp_10', projectId: 'proj_5', amount: 34200,  categoryId: 'cat_1', vendor: 'ProFloor Solutions',      description: 'Medical-grade flooring, wing A',  expenseDate: '2026-02-25' },
-    { id: 'exp_11', projectId: 'proj_5', amount: 12000,  categoryId: 'cat_5', vendor: 'County Health Dept.',     description: 'Health dept. inspection fee',     expenseDate: '2026-02-28' },
-    { id: 'exp_12', projectId: 'proj_8', amount: 61000,  categoryId: 'cat_4', vendor: 'CoreSteel Fabricators',   description: 'Structural steel fabrication',    expenseDate: '2026-01-22' },
-    { id: 'exp_13', projectId: 'proj_8', amount: 18400,  categoryId: 'cat_3', vendor: 'Atlas Equipment Rentals', description: 'Excavator rental — 5 days',       expenseDate: '2026-01-30' },
-    { id: 'exp_14', projectId: 'proj_8', amount: 4950,   categoryId: 'cat_6', vendor: 'SafeGuard Supply Co.',    description: 'Site safety equipment',           expenseDate: '2026-02-08' },
-    { id: 'exp_15', projectId: 'proj_7', amount: 29100,  categoryId: 'cat_1', vendor: 'Finish Line Materials',   description: 'Final interior finish materials', expenseDate: '2025-12-01' },
+    { id: 'exp_1',  projectId: 'proj_1', amount: 12480,  categoryId: 'cat_1', vendorId: 'vendor_1',  description: 'Foundation pour materials',       expenseDate: '2026-02-10' },
+    { id: 'exp_2',  projectId: 'proj_1', amount: 3200,   categoryId: 'cat_2', vendorId: 'vendor_2',  description: 'Framing crew — week 1',           expenseDate: '2026-02-14' },
+    { id: 'exp_3',  projectId: 'proj_1', amount: 875,    categoryId: 'cat_5', vendorId: 'vendor_3',  description: 'Building permit fee',             expenseDate: '2026-01-20' },
+    { id: 'exp_4',  projectId: 'proj_2', amount: 48000,  categoryId: 'cat_4', vendorId: 'vendor_4',  description: 'Electrical rough-in, phase 1',    expenseDate: '2026-01-15' },
+    { id: 'exp_5',  projectId: 'proj_2', amount: 22750,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Lumber & framing materials',       expenseDate: '2026-01-28' },
+    { id: 'exp_6',  projectId: 'proj_2', amount: 9600,   categoryId: 'cat_3', vendorId: 'vendor_5',  description: 'Crane rental — 3 days',           expenseDate: '2026-02-03' },
+    { id: 'exp_7',  projectId: 'proj_4', amount: 15300,  categoryId: 'cat_1', vendorId: 'vendor_7',  description: 'Steel roofing panels',             expenseDate: '2025-10-10' },
+    { id: 'exp_8',  projectId: 'proj_4', amount: 6700,   categoryId: 'cat_2', vendorId: 'vendor_10', description: 'Roofing crew labor',              expenseDate: '2025-10-18' },
+    { id: 'exp_9',  projectId: 'proj_5', amount: 87500,  categoryId: 'cat_4', vendorId: 'vendor_6',  description: 'HVAC installation, floors 1–3',   expenseDate: '2026-02-20' },
+    { id: 'exp_10', projectId: 'proj_5', amount: 34200,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Medical-grade flooring, wing A',  expenseDate: '2026-02-25' },
+    { id: 'exp_11', projectId: 'proj_5', amount: 12000,  categoryId: 'cat_5', vendorId: 'vendor_3',  description: 'Health dept. inspection fee',     expenseDate: '2026-02-28' },
+    { id: 'exp_12', projectId: 'proj_8', amount: 61000,  categoryId: 'cat_4', vendorId: 'vendor_7',  description: 'Structural steel fabrication',    expenseDate: '2026-01-22' },
+    { id: 'exp_13', projectId: 'proj_8', amount: 18400,  categoryId: 'cat_3', vendorId: 'vendor_8',  description: 'Excavator rental — 5 days',       expenseDate: '2026-01-30' },
+    { id: 'exp_14', projectId: 'proj_8', amount: 4950,   categoryId: 'cat_6', vendorId: 'vendor_1',  description: 'Site safety equipment',           expenseDate: '2026-02-08' },
+    { id: 'exp_15', projectId: 'proj_7', amount: 29100,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Final interior finish materials', expenseDate: '2025-12-01' },
   ];
   expenseSeeds.forEach((e) => db.expenses.set(e.id, e));
 };
