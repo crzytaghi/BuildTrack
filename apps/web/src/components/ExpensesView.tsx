@@ -124,6 +124,7 @@ const ExpensesView = ({
             <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
               {(() => {
                 const missingProject = submitAttempted && !form.projectId;
+                const missingVendor = submitAttempted && !form.vendor.trim();
                 const missingDescription = submitAttempted && !form.description.trim();
                 const missingAmount = submitAttempted && !form.amount;
                 const missingCategory = submitAttempted && !form.categoryId;
@@ -159,9 +160,15 @@ const ExpensesView = ({
                         ))}
                       </select>
                       <input
+                        value={form.vendor}
+                        onChange={(e) => onFormChange({ ...form, vendor: e.target.value })}
+                        placeholder="Vendor"
+                        className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingVendor ? errorClass : ''}`}
+                      />
+                      <input
                         value={form.description}
                         onChange={(e) => onFormChange({ ...form, description: e.target.value })}
-                        placeholder="Vendor / description"
+                        placeholder="Description"
                         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingDescription ? errorClass : ''}`}
                       />
                       <input
@@ -217,11 +224,9 @@ const ExpensesView = ({
                       return (
                         <div key={expense.id} className="flex items-center justify-between py-3">
                           <div>
-                            <div className="font-medium text-slate-100">
-                              {expense.description || '—'}
-                            </div>
+                            <div className="font-medium text-slate-100">{expense.vendor}</div>
                             <div className="text-xs text-slate-400">
-                              {projectName} • {categoryName} • {expense.expenseDate}
+                              {expense.description} • {projectName} • {categoryName} • {expense.expenseDate}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

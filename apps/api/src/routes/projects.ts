@@ -138,7 +138,8 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .object({
         amount: z.number(),
         categoryId: z.string(),
-        description: z.string().optional(),
+        vendor: z.string().min(1),
+        description: z.string().min(1),
         expenseDate: z.string(),
       })
       .parse(req.body);
@@ -179,7 +180,8 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .object({
         amount: z.number().optional(),
         categoryId: z.string().optional(),
-        description: z.string().optional(),
+        vendor: z.string().min(1).optional(),
+        description: z.string().min(1).optional(),
         expenseDate: z.string().optional(),
       })
       .parse(req.body);

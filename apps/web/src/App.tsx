@@ -103,6 +103,7 @@ const AppShell = () => {
   });
   const [expenseForm, setExpenseForm] = useState<ExpenseFormState>({
     projectId: '',
+    vendor: '',
     description: '',
     amount: '',
     categoryId: '',
@@ -399,7 +400,7 @@ const AppShell = () => {
     });
   };
   const resetExpenseForm = () => {
-    setExpenseForm({ projectId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+    setExpenseForm({ projectId: '', vendor: '', description: '', amount: '', categoryId: '', expenseDate: '' });
     setEditingExpenseId(null);
     setExpenseSubmitAttempted(false);
   };
@@ -414,6 +415,10 @@ const AppShell = () => {
     setExpensesError(null);
     if (!expenseForm.projectId) {
       setExpensesError('Project is required');
+      return;
+    }
+    if (!expenseForm.vendor.trim()) {
+      setExpensesError('Vendor is required');
       return;
     }
     if (!expenseForm.description.trim()) {
@@ -445,6 +450,7 @@ const AppShell = () => {
       body: JSON.stringify({
         amount: Number(expenseForm.amount),
         categoryId: expenseForm.categoryId,
+        vendor: expenseForm.vendor.trim(),
         description: expenseForm.description.trim(),
         expenseDate: expenseForm.expenseDate,
       }),
@@ -468,7 +474,8 @@ const AppShell = () => {
     setEditingExpenseId(expense.id);
     setExpenseForm({
       projectId: expense.projectId,
-      description: expense.description ?? '',
+      vendor: expense.vendor,
+      description: expense.description,
       amount: String(expense.amount),
       categoryId: expense.categoryId,
       expenseDate: expense.expenseDate,
@@ -732,7 +739,7 @@ const AppShell = () => {
                   onCreateExpense={() => {
                     setExpenseCreateOpen(true);
                     setEditingExpenseId(null);
-                    setExpenseForm({ projectId: '', description: '', amount: '', categoryId: '', expenseDate: '' });
+                    setExpenseForm({ projectId: '', vendor: '', description: '', amount: '', categoryId: '', expenseDate: '' });
                     setExpenseSubmitAttempted(false);
                   }}
                   onSubmit={handleExpenseSubmit}

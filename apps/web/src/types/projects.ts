@@ -32,7 +32,8 @@ export type ExpenseItem = {
   projectId: string;
   amount: number;
   categoryId: string;
-  description?: string;
+  vendor: string;
+  description: string;
   expenseDate: string;
 };
 
@@ -43,6 +44,7 @@ export type Category = {
 
 export type ExpenseFormState = {
   projectId: string;
+  vendor: string;
   description: string;
   amount: string;
   categoryId: string;
