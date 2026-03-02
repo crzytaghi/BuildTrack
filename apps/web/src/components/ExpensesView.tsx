@@ -1,9 +1,10 @@
-import type { Category, ExpenseFormState, ExpenseItem, ProjectItem } from '../types/projects';
+import type { Category, ExpenseFormState, ExpenseItem, ProjectItem, VendorItem } from '../types/projects';
 
 type Props = {
   projects: ProjectItem[];
   expenses: ExpenseItem[];
   categories: Category[];
+  vendors: VendorItem[];
   loading: boolean;
   error: string | null;
   filters: {
@@ -31,6 +32,7 @@ const ExpensesView = ({
   projects,
   expenses,
   categories,
+  vendors,
   loading,
   error,
   filters,
@@ -124,7 +126,7 @@ const ExpensesView = ({
             <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
               {(() => {
                 const missingProject = submitAttempted && !form.projectId;
-                const missingVendor = submitAttempted && !form.vendor.trim();
+                const missingVendor = submitAttempted && !form.vendorId;
                 const missingDescription = submitAttempted && !form.description.trim();
                 const missingAmount = submitAttempted && !form.amount;
                 const missingCategory = submitAttempted && !form.categoryId;
@@ -159,12 +161,16 @@ const ExpensesView = ({
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
                       </select>
-                      <input
-                        value={form.vendor}
-                        onChange={(e) => onFormChange({ ...form, vendor: e.target.value })}
-                        placeholder="Vendor"
+                      <select
+                        value={form.vendorId}
+                        onChange={(e) => onFormChange({ ...form, vendorId: e.target.value })}
                         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingVendor ? errorClass : ''}`}
-                      />
+                      >
+                        <option value="">Select vendor</option>
+                        {vendors.map((v) => (
+                          <option key={v.id} value={v.id}>{v.name}</option>
+                        ))}
+                      </select>
                       <input
                         value={form.description}
                         onChange={(e) => onFormChange({ ...form, description: e.target.value })}
@@ -221,10 +227,11 @@ const ExpensesView = ({
                     expenses.map((expense) => {
                       const projectName = projects.find((p) => p.id === expense.projectId)?.name ?? 'Unknown';
                       const categoryName = categories.find((c) => c.id === expense.categoryId)?.name ?? expense.categoryId;
+                      const vendorName = vendors.find((v) => v.id === expense.vendorId)?.name ?? expense.vendorId;
                       return (
                         <div key={expense.id} className="flex items-center justify-between py-3">
                           <div>
-                            <div className="font-medium text-slate-100">{expense.vendor}</div>
+                            <div className="font-medium text-slate-100">{vendorName}</div>
                             <div className="text-xs text-slate-400">
                               {expense.description} • {projectName} • {categoryName} • {expense.expenseDate}
                             </div>
