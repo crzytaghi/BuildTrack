@@ -42,7 +42,6 @@ type Props = {
   onQuoteCancelEdit: () => void;
   onAwardQuote: (quoteId: string) => void;
   onEditQuote: (quote: QuoteItem) => void;
-  onLogout: () => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -79,7 +78,6 @@ const BudgetView = ({
   onQuoteCancelEdit,
   onAwardQuote,
   onEditQuote,
-  onLogout,
 }: Props) => {
   const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
 
@@ -116,12 +114,6 @@ const BudgetView = ({
           <div className="text-2xl font-semibold font-display">Budget</div>
           <div className="text-sm text-slate-400">Track budgets, quotes, and actual spend by line item.</div>
         </div>
-        <button
-          className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200"
-          onClick={onLogout}
-        >
-          Log out
-        </button>
       </header>
 
       {/* Project filter */}

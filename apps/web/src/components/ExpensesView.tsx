@@ -24,7 +24,6 @@ type Props = {
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditExpense: (expense: ExpenseItem) => void;
-  onLogout: () => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -48,7 +47,6 @@ const ExpensesView = ({
   onSubmit,
   onCancelEdit,
   onEditExpense,
-  onLogout,
 }: Props) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -59,12 +57,6 @@ const ExpensesView = ({
           <div className="text-2xl font-semibold font-display">Expenses</div>
           <div className="text-sm text-slate-400">Record and track project costs.</div>
         </div>
-        <button
-          className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200"
-          onClick={onLogout}
-        >
-          Log out
-        </button>
       </header>
 
       <section className="px-4 py-6 sm:px-6 lg:px-8">

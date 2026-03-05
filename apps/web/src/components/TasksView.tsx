@@ -34,7 +34,6 @@ type Props = {
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditTask: (task: TaskItem) => void;
-  onLogout: () => void;
 };
 
 const TasksView = ({
@@ -53,7 +52,6 @@ const TasksView = ({
   onSubmit,
   onCancelEdit,
   onEditTask,
-  onLogout,
 }: Props) => (
   <>
     <header className="flex flex-col gap-4 bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
@@ -61,12 +59,6 @@ const TasksView = ({
         <div className="text-2xl font-semibold font-display">Tasks</div>
         <div className="text-sm text-slate-400">Track and update your schedule.</div>
       </div>
-      <button
-        className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200"
-        onClick={onLogout}
-      >
-        Log out
-      </button>
     </header>
 
     <section className="px-4 py-6 sm:px-6 lg:px-8">

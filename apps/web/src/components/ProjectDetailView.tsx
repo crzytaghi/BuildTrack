@@ -8,10 +8,9 @@ const API_BASE = getApiBase();
 type Props = {
   projectId: string;
   token: string;
-  onLogout: () => void;
 };
 
-const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
+const ProjectDetailView = ({ projectId, token }: Props) => {
   const [project, setProject] = useState<ProjectItem | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
@@ -150,12 +149,6 @@ const ProjectDetailView = ({ projectId, token, onLogout }: Props) => {
           <div className="text-2xl font-semibold font-display">{project.name}</div>
           <div className="text-sm text-slate-400">Status: {project.status}</div>
         </div>
-        <button
-          className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200"
-          onClick={onLogout}
-        >
-          Log out
-        </button>
       </header>
 
       <section className="grid grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:px-8">

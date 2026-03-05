@@ -14,7 +14,6 @@ type Props = {
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditVendor: (vendor: VendorItem) => void;
-  onLogout: () => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -33,7 +32,6 @@ const VendorsView = ({
   onSubmit,
   onCancelEdit,
   onEditVendor,
-  onLogout,
 }: Props) => {
   const spendByVendor = expenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.vendorId] = (acc[e.vendorId] ?? 0) + e.amount;
@@ -52,12 +50,6 @@ const VendorsView = ({
           <div className="text-2xl font-semibold font-display">Vendors</div>
           <div className="text-sm text-slate-400">Manage subcontractors and suppliers.</div>
         </div>
-        <button
-          className="rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-200"
-          onClick={onLogout}
-        >
-          Log out
-        </button>
       </header>
 
       <section className="px-4 py-6 sm:px-6 lg:px-8">

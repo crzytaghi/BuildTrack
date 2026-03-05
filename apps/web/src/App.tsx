@@ -955,7 +955,7 @@ const AppShell = () => {
                 className="absolute inset-0 bg-black/50"
                 onClick={() => setMobileNavOpen(false)}
               />
-              <aside className="absolute left-0 top-0 h-full w-72 bg-[#0b1118] p-6 shadow-2xl">
+              <aside className="absolute left-0 top-0 h-full w-72 flex flex-col bg-[#0b1118] p-6 shadow-2xl">
                 <div>
                   <div className="text-xl font-semibold tracking-tight font-display">BuildTrack</div>
                   <div className="mt-8 space-y-2 text-sm">
@@ -1021,7 +1021,7 @@ const AppShell = () => {
             />
             <Route
               path="/projects/:id"
-              element={<ProjectDetailRoute token={token ?? ''} onLogout={handleLogout} />}
+              element={<ProjectDetailRoute token={token ?? ''} />}
             />
             <Route
               path="/expenses"
@@ -1050,7 +1050,6 @@ const AppShell = () => {
                   onSubmit={handleExpenseSubmit}
                   onCancelEdit={closeExpenseForm}
                   onEditExpense={selectExpenseForEdit}
-                  onLogout={handleLogout}
                 />
               }
             />
@@ -1078,7 +1077,6 @@ const AppShell = () => {
                   onSubmit={handleTaskSubmit}
                   onCancelEdit={closeTaskForm}
                   onEditTask={selectTaskForEdit}
-                  onLogout={handleLogout}
                 />
               }
             />
@@ -1104,7 +1102,6 @@ const AppShell = () => {
                   onSubmit={handleVendorSubmit}
                   onCancelEdit={closeVendorForm}
                   onEditVendor={selectVendorForEdit}
-                  onLogout={handleLogout}
                 />
               }
             />
@@ -1161,7 +1158,6 @@ const AppShell = () => {
                   onQuoteCancelEdit={closeQuoteForm}
                   onAwardQuote={handleAwardQuote}
                   onEditQuote={selectQuoteForEdit}
-                  onLogout={handleLogout}
                 />
               }
             />
@@ -1172,10 +1168,10 @@ const AppShell = () => {
   );
 };
 
-const ProjectDetailRoute = ({ token, onLogout }: { token: string; onLogout: () => void }) => {
+const ProjectDetailRoute = ({ token }: { token: string }) => {
   const { id } = useParams();
   if (!id) return null;
-  return <ProjectDetailView projectId={id} token={token} onLogout={onLogout} />;
+  return <ProjectDetailView projectId={id} token={token} />;
 };
 
 const App = () => (
