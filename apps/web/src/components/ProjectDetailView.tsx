@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiBase } from '../lib/api';
-import type { ExpenseItem, ProjectItem, TaskItem } from '../types/projects';
+import type { BudgetLineItem, ExpenseItem, ProjectItem, TaskItem } from '../types/projects';
 
 const API_BASE = getApiBase();
 
@@ -14,6 +14,7 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
   const [project, setProject] = useState<ProjectItem | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
+  const [lineItems, setLineItems] = useState<BudgetLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,7 +34,7 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
       setLoading(true);
       setError(null);
       try {
-        const [projectRes, tasksRes, expensesRes] = await Promise.all([
+        const [projectRes, tasksRes, expensesRes, lineItemsRes] = await Promise.all([
           fetch(`${API_BASE}/projects/${projectId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
@@ -43,6 +44,9 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
           fetch(`${API_BASE}/projects/${projectId}/expenses`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          fetch(`${API_BASE}/projects/${projectId}/budget-line-items`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         if (!projectRes.ok) throw new Error('Unable to load project');
@@ -50,10 +54,12 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
         const projectData = (await projectRes.json()) as { data: ProjectItem };
         const tasksData = (await tasksRes.json()) as { data: TaskItem[] };
         const expensesData = (await expensesRes.json()) as { data: ExpenseItem[] };
+        const lineItemsData = (await lineItemsRes.json()) as { data: BudgetLineItem[] };
 
         setProject(projectData.data);
         setTasks(tasksData.data);
         setExpenses(expensesData.data);
+        setLineItems(lineItemsData.data);
         setForm({
           name: projectData.data.name,
           status: projectData.data.status,
@@ -332,9 +338,28 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
 
       <section className="grid grid-cols-1 gap-6 px-4 pb-12 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="text-sm font-semibold text-slate-200">Budget (Coming Soon)</div>
-          <div className="mt-3 text-sm text-slate-400">
-            Will load from `/projects/:id/budget-items` when available.
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-200">Budget Line Items</div>
+            <Link
+              to={`/budget?projectId=${project.id}`}
+              className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+            >
+              View Budget
+            </Link>
+          </div>
+          <div className="mt-4 divide-y divide-slate-800 text-sm">
+            {lineItems.length === 0 ? (
+              <div className="text-slate-400">No line items yet.</div>
+            ) : (
+              lineItems.map((item) => (
+                <div key={item.id} className="py-3">
+                  <div className="font-medium text-slate-100">{item.description}</div>
+                  <div className="text-xs text-slate-400">
+                    ${item.budgetedAmount.toLocaleString()}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
         <div className="rounded-2xl bg-panel p-6 shadow-lg">

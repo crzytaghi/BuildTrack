@@ -307,6 +307,13 @@ const AppShell = () => {
 
   useEffect(() => {
     if (!token || !user || location.pathname !== '/budget') return;
+    if (location.search) {
+      const params = new URLSearchParams(location.search);
+      const projectId = params.get('projectId') ?? '';
+      if (projectId && projectId !== budgetProjectFilter) {
+        setBudgetProjectFilter(projectId);
+      }
+    }
     const loadLineItems = async () => {
       setLineItemsLoading(true);
       setLineItemsError(null);
