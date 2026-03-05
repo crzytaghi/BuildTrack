@@ -54,6 +54,7 @@ export type ExpenseItem = {
   vendorId: string;
   description: string;
   expenseDate: string;
+  lineItemId?: string;
 };
 
 export type Category = {
@@ -68,4 +69,44 @@ export type ExpenseFormState = {
   amount: string;
   categoryId: string;
   expenseDate: string;
+  lineItemId: string;
+};
+
+export type BudgetLineItem = {
+  id: string;
+  projectId: string;
+  categoryId: string;
+  description: string;
+  budgetedAmount: number;
+  notes?: string;
+};
+
+export type BudgetLineItemFormState = {
+  projectId: string;
+  categoryId: string;
+  description: string;
+  budgetedAmount: string;
+  notes: string;
+};
+
+export type QuoteStatus = 'pending' | 'awarded' | 'rejected';
+
+export type QuoteItem = {
+  id: string;
+  lineItemId: string;
+  projectId: string;
+  vendorId: string;
+  amount: number;
+  status: QuoteStatus;
+  description?: string;
+  expiresAt?: string;
+  submittedAt: string;
+};
+
+export type QuoteFormState = {
+  vendorId: string;
+  amount: string;
+  description: string;
+  expiresAt: string;
+  submittedAt: string;
 };

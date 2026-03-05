@@ -1,10 +1,11 @@
-import type { Category, ExpenseFormState, ExpenseItem, ProjectItem, VendorItem } from '../types/projects';
+import type { BudgetLineItem, Category, ExpenseFormState, ExpenseItem, ProjectItem, VendorItem } from '../types/projects';
 
 type Props = {
   projects: ProjectItem[];
   expenses: ExpenseItem[];
   categories: Category[];
   vendors: VendorItem[];
+  budgetLineItems: BudgetLineItem[];
   loading: boolean;
   error: string | null;
   filters: {
@@ -33,6 +34,7 @@ const ExpensesView = ({
   expenses,
   categories,
   vendors,
+  budgetLineItems,
   loading,
   error,
   filters,
@@ -196,6 +198,18 @@ const ExpensesView = ({
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
+                      <select
+                        value={form.lineItemId}
+                        onChange={(e) => onFormChange({ ...form, lineItemId: e.target.value })}
+                        className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
+                      >
+                        <option value="">No line item (optional)</option>
+                        {budgetLineItems
+                          .filter((li) => !form.projectId || li.projectId === form.projectId)
+                          .map((li) => (
+                            <option key={li.id} value={li.id}>{li.description}</option>
+                          ))}
+                      </select>
                       <input
                         type="date"
                         value={form.expenseDate}
@@ -228,12 +242,16 @@ const ExpensesView = ({
                       const projectName = projects.find((p) => p.id === expense.projectId)?.name ?? 'Unknown';
                       const categoryName = categories.find((c) => c.id === expense.categoryId)?.name ?? expense.categoryId;
                       const vendorName = vendors.find((v) => v.id === expense.vendorId)?.name ?? expense.vendorId;
+                      const lineItemDesc = expense.lineItemId
+                        ? budgetLineItems.find((li) => li.id === expense.lineItemId)?.description
+                        : undefined;
                       return (
                         <div key={expense.id} className="flex items-center justify-between py-3">
                           <div>
                             <div className="font-medium text-slate-100">{vendorName}</div>
                             <div className="text-xs text-slate-400">
                               {expense.description} • {projectName} • {categoryName} • {expense.expenseDate}
+                              {lineItemDesc && ` • ${lineItemDesc}`}
                             </div>
                           </div>
                           <div className="flex items-center gap-3">

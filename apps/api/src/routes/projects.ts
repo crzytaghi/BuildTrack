@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { db } from '../store.js';
 
@@ -141,6 +142,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
         vendorId: z.string(),
         description: z.string().min(1),
         expenseDate: z.string(),
+        lineItemId: z.string().optional(),
       })
       .parse(req.body);
 
@@ -183,6 +185,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
         vendorId: z.string().optional(),
         description: z.string().min(1).optional(),
         expenseDate: z.string().optional(),
+        lineItemId: z.string().optional(),
       })
       .parse(req.body);
 
@@ -248,6 +251,116 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     const expenseCount = vendorExpenses.length;
 
     return { data: { ...vendor, totalSpend, expenseCount } };
+  });
+
+  // Budget Line Items
+  app.get('/budget-line-items', { preHandler: requireAuth }, async (req) => {
+    const query = (req.query as { projectId?: string }) ?? {};
+    const data = Array.from(db.budgetLineItems.values()).filter((item) => {
+      if (query.projectId && item.projectId !== query.projectId) return false;
+      return true;
+    });
+    return { data };
+  });
+
+  app.get('/projects/:id/budget-line-items', { preHandler: requireAuth }, async (req) => {
+    const id = (req.params as { id: string }).id;
+    const data = Array.from(db.budgetLineItems.values()).filter((item) => item.projectId === id);
+    return { data };
+  });
+
+  app.post('/projects/:id/budget-line-items', { preHandler: requireAuth }, async (req, reply) => {
+    const projectId = (req.params as { id: string }).id;
+    const body = z
+      .object({
+        categoryId: z.string().min(1),
+        description: z.string().min(1),
+        budgetedAmount: z.number().positive(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const id = `bli_${randomUUID()}`;
+    const lineItem = { id, projectId, ...body };
+    db.budgetLineItems.set(id, lineItem);
+    reply.code(201).send({ data: lineItem });
+  });
+
+  app.patch('/budget-line-items/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const lineItem = db.budgetLineItems.get(id);
+    if (!lineItem) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        categoryId: z.string().min(1).optional(),
+        description: z.string().min(1).optional(),
+        budgetedAmount: z.number().positive().optional(),
+        notes: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const updated = { ...lineItem, ...body };
+    db.budgetLineItems.set(id, updated);
+    return { data: updated };
+  });
+
+  // Quotes
+  app.get('/projects/:id/quotes', { preHandler: requireAuth }, async (req) => {
+    const id = (req.params as { id: string }).id;
+    const data = Array.from(db.quotes.values()).filter((q) => q.projectId === id);
+    return { data };
+  });
+
+  app.post('/budget-line-items/:id/quotes', { preHandler: requireAuth }, async (req, reply) => {
+    const lineItemId = (req.params as { id: string }).id;
+    const lineItem = db.budgetLineItems.get(lineItemId);
+    if (!lineItem) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        vendorId: z.string().min(1),
+        amount: z.number().positive(),
+        submittedAt: z.string(),
+        description: z.string().optional(),
+        expiresAt: z.string().optional(),
+      })
+      .parse(req.body);
+
+    const id = `quote_${randomUUID()}`;
+    const quote = { id, lineItemId, projectId: lineItem.projectId, status: 'pending' as const, ...body };
+    db.quotes.set(id, quote);
+    reply.code(201).send({ data: quote });
+  });
+
+  app.patch('/quotes/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const quote = db.quotes.get(id);
+    if (!quote) return reply.code(404).send({ error: 'Not found' });
+
+    const body = z
+      .object({
+        vendorId: z.string().min(1).optional(),
+        amount: z.number().positive().optional(),
+        submittedAt: z.string().optional(),
+        description: z.string().optional(),
+        expiresAt: z.string().optional(),
+        status: z.enum(['pending', 'awarded', 'rejected']).optional(),
+      })
+      .parse(req.body);
+
+    const updated = { ...quote, ...body };
+    db.quotes.set(id, updated);
+
+    if (body.status === 'awarded') {
+      for (const [qid, q] of db.quotes) {
+        if (q.lineItemId === quote.lineItemId && qid !== id) {
+          db.quotes.set(qid, { ...q, status: 'rejected' });
+        }
+      }
+    }
+
+    return { data: updated };
   });
 };
 

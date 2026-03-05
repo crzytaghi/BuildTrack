@@ -49,11 +49,33 @@ export type Expense = {
   vendorId: string;
   description: string;
   expenseDate: string;
+  lineItemId?: string;
 };
 
 export type Category = {
   id: string;
   name: string;
+};
+
+export type BudgetLineItem = {
+  id: string;
+  projectId: string;
+  categoryId: string;
+  description: string;
+  budgetedAmount: number;
+  notes?: string;
+};
+
+export type Quote = {
+  id: string;
+  lineItemId: string;
+  projectId: string;
+  vendorId: string;
+  amount: number;
+  status: 'pending' | 'awarded' | 'rejected';
+  description?: string;
+  expiresAt?: string;
+  submittedAt: string;
 };
 
 export const db = {
@@ -64,6 +86,8 @@ export const db = {
   expenses: new Map<string, Expense>(),
   categories: new Map<string, Category>(),
   vendors: new Map<string, Vendor>(),
+  budgetLineItems: new Map<string, BudgetLineItem>(),
+  quotes: new Map<string, Quote>(),
 };
 
 export const resetDb = () => {
@@ -74,6 +98,8 @@ export const resetDb = () => {
   db.expenses.clear();
   db.categories.clear();
   db.vendors.clear();
+  db.budgetLineItems.clear();
+  db.quotes.clear();
 };
 
 export const seed = () => {
@@ -155,18 +181,41 @@ export const seed = () => {
     { id: 'exp_1',  projectId: 'proj_1', amount: 12480,  categoryId: 'cat_1', vendorId: 'vendor_1',  description: 'Foundation pour materials',       expenseDate: '2026-02-10' },
     { id: 'exp_2',  projectId: 'proj_1', amount: 3200,   categoryId: 'cat_2', vendorId: 'vendor_2',  description: 'Framing crew — week 1',           expenseDate: '2026-02-14' },
     { id: 'exp_3',  projectId: 'proj_1', amount: 875,    categoryId: 'cat_5', vendorId: 'vendor_3',  description: 'Building permit fee',             expenseDate: '2026-01-20' },
-    { id: 'exp_4',  projectId: 'proj_2', amount: 48000,  categoryId: 'cat_4', vendorId: 'vendor_4',  description: 'Electrical rough-in, phase 1',    expenseDate: '2026-01-15' },
-    { id: 'exp_5',  projectId: 'proj_2', amount: 22750,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Lumber & framing materials',       expenseDate: '2026-01-28' },
-    { id: 'exp_6',  projectId: 'proj_2', amount: 9600,   categoryId: 'cat_3', vendorId: 'vendor_5',  description: 'Crane rental — 3 days',           expenseDate: '2026-02-03' },
+    { id: 'exp_4',  projectId: 'proj_2', amount: 48000,  categoryId: 'cat_4', vendorId: 'vendor_4',  description: 'Electrical rough-in, phase 1',    expenseDate: '2026-01-15', lineItemId: 'bli_4' },
+    { id: 'exp_5',  projectId: 'proj_2', amount: 22750,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Lumber & framing materials',       expenseDate: '2026-01-28', lineItemId: 'bli_5' },
+    { id: 'exp_6',  projectId: 'proj_2', amount: 9600,   categoryId: 'cat_3', vendorId: 'vendor_5',  description: 'Crane rental — 3 days',           expenseDate: '2026-02-03', lineItemId: 'bli_6' },
     { id: 'exp_7',  projectId: 'proj_4', amount: 15300,  categoryId: 'cat_1', vendorId: 'vendor_7',  description: 'Steel roofing panels',             expenseDate: '2025-10-10' },
     { id: 'exp_8',  projectId: 'proj_4', amount: 6700,   categoryId: 'cat_2', vendorId: 'vendor_10', description: 'Roofing crew labor',              expenseDate: '2025-10-18' },
-    { id: 'exp_9',  projectId: 'proj_5', amount: 87500,  categoryId: 'cat_4', vendorId: 'vendor_6',  description: 'HVAC installation, floors 1–3',   expenseDate: '2026-02-20' },
-    { id: 'exp_10', projectId: 'proj_5', amount: 34200,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Medical-grade flooring, wing A',  expenseDate: '2026-02-25' },
+    { id: 'exp_9',  projectId: 'proj_5', amount: 87500,  categoryId: 'cat_4', vendorId: 'vendor_6',  description: 'HVAC installation, floors 1–3',   expenseDate: '2026-02-20', lineItemId: 'bli_7' },
+    { id: 'exp_10', projectId: 'proj_5', amount: 34200,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Medical-grade flooring, wing A',  expenseDate: '2026-02-25', lineItemId: 'bli_8' },
     { id: 'exp_11', projectId: 'proj_5', amount: 12000,  categoryId: 'cat_5', vendorId: 'vendor_3',  description: 'Health dept. inspection fee',     expenseDate: '2026-02-28' },
-    { id: 'exp_12', projectId: 'proj_8', amount: 61000,  categoryId: 'cat_4', vendorId: 'vendor_7',  description: 'Structural steel fabrication',    expenseDate: '2026-01-22' },
-    { id: 'exp_13', projectId: 'proj_8', amount: 18400,  categoryId: 'cat_3', vendorId: 'vendor_8',  description: 'Excavator rental — 5 days',       expenseDate: '2026-01-30' },
+    { id: 'exp_12', projectId: 'proj_8', amount: 61000,  categoryId: 'cat_4', vendorId: 'vendor_7',  description: 'Structural steel fabrication',    expenseDate: '2026-01-22', lineItemId: 'bli_9' },
+    { id: 'exp_13', projectId: 'proj_8', amount: 18400,  categoryId: 'cat_3', vendorId: 'vendor_8',  description: 'Excavator rental — 5 days',       expenseDate: '2026-01-30', lineItemId: 'bli_10' },
     { id: 'exp_14', projectId: 'proj_8', amount: 4950,   categoryId: 'cat_6', vendorId: 'vendor_1',  description: 'Site safety equipment',           expenseDate: '2026-02-08' },
     { id: 'exp_15', projectId: 'proj_7', amount: 29100,  categoryId: 'cat_1', vendorId: 'vendor_9',  description: 'Final interior finish materials', expenseDate: '2025-12-01' },
   ];
   expenseSeeds.forEach((e) => db.expenses.set(e.id, e));
+
+  const lineItemSeeds: BudgetLineItem[] = [
+    { id: 'bli_1',  projectId: 'proj_1', categoryId: 'cat_2', description: 'Framing labor — all floors',              budgetedAmount: 28000 },
+    { id: 'bli_2',  projectId: 'proj_1', categoryId: 'cat_1', description: 'Concrete & foundation materials',          budgetedAmount: 45000 },
+    { id: 'bli_3',  projectId: 'proj_1', categoryId: 'cat_5', description: 'Permits & inspection fees',                budgetedAmount: 8500 },
+    { id: 'bli_4',  projectId: 'proj_2', categoryId: 'cat_4', description: 'Electrical rough-in (full scope)',         budgetedAmount: 120000 },
+    { id: 'bli_5',  projectId: 'proj_2', categoryId: 'cat_1', description: 'Structural lumber package',                budgetedAmount: 95000 },
+    { id: 'bli_6',  projectId: 'proj_2', categoryId: 'cat_3', description: 'Crane & heavy equipment',                  budgetedAmount: 35000 },
+    { id: 'bli_7',  projectId: 'proj_5', categoryId: 'cat_4', description: 'HVAC systems — floors 1–5',                budgetedAmount: 380000 },
+    { id: 'bli_8',  projectId: 'proj_5', categoryId: 'cat_1', description: 'Medical-grade flooring, all wings',        budgetedAmount: 210000 },
+    { id: 'bli_9',  projectId: 'proj_8', categoryId: 'cat_4', description: 'Structural steel fabrication & erection',  budgetedAmount: 540000 },
+    { id: 'bli_10', projectId: 'proj_8', categoryId: 'cat_3', description: 'Excavation & site equipment',              budgetedAmount: 72000 },
+  ];
+  lineItemSeeds.forEach((b) => db.budgetLineItems.set(b.id, b));
+
+  const quoteSeeds: Quote[] = [
+    { id: 'quote_1', lineItemId: 'bli_4', projectId: 'proj_2', vendorId: 'vendor_4', amount: 112000,  status: 'awarded',  submittedAt: '2025-12-01' },
+    { id: 'quote_2', lineItemId: 'bli_4', projectId: 'proj_2', vendorId: 'vendor_1', amount: 118500,  status: 'rejected', submittedAt: '2025-12-03' },
+    { id: 'quote_3', lineItemId: 'bli_7', projectId: 'proj_5', vendorId: 'vendor_6', amount: 365000,  status: 'awarded',  submittedAt: '2026-01-10' },
+    { id: 'quote_4', lineItemId: 'bli_9', projectId: 'proj_8', vendorId: 'vendor_7', amount: 515000,  status: 'awarded',  submittedAt: '2025-12-15' },
+    { id: 'quote_5', lineItemId: 'bli_9', projectId: 'proj_8', vendorId: 'vendor_8', amount: 530000,  status: 'rejected', submittedAt: '2025-12-16' },
+  ];
+  quoteSeeds.forEach((q) => db.quotes.set(q.id, q));
 };
