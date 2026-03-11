@@ -377,6 +377,16 @@ const AppShell = () => {
       .catch(() => null);
   }, [token, user, vendors.length]);
 
+  useEffect(() => {
+    if (!token || !user || lineItems.length > 0) return;
+    fetch(`${API_BASE}/budget-line-items`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data: { data: BudgetLineItem[] }) => setLineItems(data.data))
+      .catch(() => null);
+  }, [token, user, lineItems.length]);
+
   const handleAuth = async (path: 'login' | 'signup', payload: Record<string, string>) => {
     setError(null);
     try {

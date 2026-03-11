@@ -221,6 +221,12 @@ const ExpensesView = ({
                     >
                       {editingExpenseId ? 'Update Expense' : 'Add Expense'}
                     </button>
+                    <p className="mt-3 text-xs text-slate-500">
+                      Need a new line item?{' '}
+                      <a href="/budget" className="text-slate-400 underline underline-offset-2 hover:text-slate-200">
+                        Manage them on the Budget page.
+                      </a>
+                    </p>
                   </>
                 );
               })()}
