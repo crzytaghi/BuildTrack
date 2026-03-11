@@ -28,12 +28,15 @@ type Props = {
     dueDate: string;
   };
   editingTaskId: string | null;
+  deletingTaskId: string | null;
   onFilterChange: (next: Props['filters']) => void;
   onFormChange: (next: Props['form']) => void;
   onCreateTask: () => void;
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditTask: (task: TaskItem) => void;
+  onRequestDeleteTask: (id: string | null) => void;
+  onDeleteTask: (id: string) => void;
 };
 
 const TasksView = ({
@@ -46,12 +49,15 @@ const TasksView = ({
   submitAttempted,
   form,
   editingTaskId,
+  deletingTaskId,
   onFilterChange,
   onFormChange,
   onCreateTask,
   onSubmit,
   onCancelEdit,
   onEditTask,
+  onRequestDeleteTask,
+  onDeleteTask,
 }: Props) => (
   <>
     <header className="flex flex-col gap-4 bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
@@ -226,12 +232,39 @@ const TasksView = ({
                         {projectName} • {statusLabel[task.status]} • {task.dueDate || 'No due date'}
                       </div>
                     </div>
-                    <button
-                      className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                      onClick={() => onEditTask(task)}
-                    >
-                      Edit
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {deletingTaskId === task.id ? (
+                        <>
+                          <button
+                            className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                            onClick={() => onDeleteTask(task.id)}
+                          >
+                            Confirm delete
+                          </button>
+                          <button
+                            className="text-xs text-slate-400"
+                            onClick={() => onRequestDeleteTask(null)}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                            onClick={() => onEditTask(task)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                            onClick={() => onRequestDeleteTask(task.id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )})
               )}

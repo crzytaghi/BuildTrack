@@ -7,6 +7,7 @@ type Props = {
   error: string | null;
   form: VendorFormState;
   editingVendorId: string | null;
+  deletingVendorId: string | null;
   createOpen: boolean;
   submitAttempted: boolean;
   onFormChange: (next: VendorFormState) => void;
@@ -14,6 +15,8 @@ type Props = {
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditVendor: (vendor: VendorItem) => void;
+  onRequestDeleteVendor: (id: string | null) => void;
+  onDeleteVendor: (id: string) => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -25,6 +28,7 @@ const VendorsView = ({
   error,
   form,
   editingVendorId,
+  deletingVendorId,
   createOpen,
   submitAttempted,
   onFormChange,
@@ -32,6 +36,8 @@ const VendorsView = ({
   onSubmit,
   onCancelEdit,
   onEditVendor,
+  onRequestDeleteVendor,
+  onDeleteVendor,
 }: Props) => {
   const spendByVendor = expenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.vendorId] = (acc[e.vendorId] ?? 0) + e.amount;
@@ -161,12 +167,39 @@ const VendorsView = ({
                             {vendor.trade ?? 'No trade'} • {fmt.format(totalSpend)} • {expenseCount} {expenseCount === 1 ? 'expense' : 'expenses'}
                           </div>
                         </div>
-                        <button
-                          className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                          onClick={() => onEditVendor(vendor)}
-                        >
-                          Edit
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {deletingVendorId === vendor.id ? (
+                            <>
+                              <button
+                                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                onClick={() => onDeleteVendor(vendor.id)}
+                              >
+                                Confirm delete
+                              </button>
+                              <button
+                                className="text-xs text-slate-400"
+                                onClick={() => onRequestDeleteVendor(null)}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                onClick={() => onEditVendor(vendor)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                onClick={() => onRequestDeleteVendor(vendor.id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })

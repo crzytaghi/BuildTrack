@@ -29,6 +29,8 @@ type Props = {
   quoteCreateOpen: boolean;
   quoteSubmitAttempted: boolean;
   editingQuoteId: string | null;
+  deletingLineItemId: string | null;
+  deletingQuoteId: string | null;
   onProjectFilterChange: (projectId: string) => void;
   onSelectLineItem: (id: string | null) => void;
   onLineItemFormChange: (next: BudgetLineItemFormState) => void;
@@ -36,12 +38,16 @@ type Props = {
   onLineItemSubmit: () => void;
   onLineItemCancelEdit: () => void;
   onEditLineItem: (item: BudgetLineItem) => void;
+  onRequestDeleteLineItem: (id: string | null) => void;
+  onDeleteLineItem: (id: string) => void;
   onQuoteFormChange: (next: QuoteFormState) => void;
   onCreateQuote: () => void;
   onQuoteSubmit: () => void;
   onQuoteCancelEdit: () => void;
   onAwardQuote: (quoteId: string) => void;
   onEditQuote: (quote: QuoteItem) => void;
+  onRequestDeleteQuote: (id: string | null) => void;
+  onDeleteQuote: (id: string) => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -65,6 +71,8 @@ const BudgetView = ({
   quoteCreateOpen,
   quoteSubmitAttempted,
   editingQuoteId,
+  deletingLineItemId,
+  deletingQuoteId,
   onProjectFilterChange,
   onSelectLineItem,
   onLineItemFormChange,
@@ -72,12 +80,16 @@ const BudgetView = ({
   onLineItemSubmit,
   onLineItemCancelEdit,
   onEditLineItem,
+  onRequestDeleteLineItem,
+  onDeleteLineItem,
   onQuoteFormChange,
   onCreateQuote,
   onQuoteSubmit,
   onQuoteCancelEdit,
   onAwardQuote,
   onEditQuote,
+  onRequestDeleteQuote,
+  onDeleteQuote,
 }: Props) => {
   const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
 
@@ -272,12 +284,37 @@ const BudgetView = ({
                           >
                             {quoteCount} Quotes
                           </button>
-                          <button
-                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                            onClick={() => onEditLineItem(item)}
-                          >
-                            Edit
-                          </button>
+                          {deletingLineItemId === item.id ? (
+                            <>
+                              <button
+                                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                onClick={() => onDeleteLineItem(item.id)}
+                              >
+                                Confirm delete
+                              </button>
+                              <button
+                                className="text-xs text-slate-400"
+                                onClick={() => onRequestDeleteLineItem(null)}
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                onClick={() => onEditLineItem(item)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                onClick={() => onRequestDeleteLineItem(item.id)}
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -426,6 +463,29 @@ const BudgetView = ({
                                 onClick={(e) => { e.stopPropagation(); onEditQuote(quote); }}
                               >
                                 Edit
+                              </button>
+                            )}
+                            {deletingQuoteId === quote.id ? (
+                              <>
+                                <button
+                                  className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                  onClick={(e) => { e.stopPropagation(); onDeleteQuote(quote.id); }}
+                                >
+                                  Confirm delete
+                                </button>
+                                <button
+                                  className="text-xs text-slate-400"
+                                  onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(null); }}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(quote.id); }}
+                              >
+                                Delete
                               </button>
                             )}
                             <span className="text-xs text-slate-500">{isExpanded ? '▲' : '▼'}</span>

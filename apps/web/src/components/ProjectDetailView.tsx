@@ -8,9 +8,12 @@ const API_BASE = getApiBase();
 type Props = {
   projectId: string;
   token: string;
+  deletingProjectId: string | null;
+  onRequestDeleteProject: (id: string | null) => void;
+  onDeleteProject: (id: string) => void;
 };
 
-const ProjectDetailView = ({ projectId, token }: Props) => {
+const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDeleteProject, onDeleteProject }: Props) => {
   const [project, setProject] = useState<ProjectItem | null>(null);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
@@ -154,6 +157,31 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
           </Link>
           <div className="text-2xl font-semibold font-display">{project.name}</div>
           <div className="text-sm text-slate-400">Status: {project.status}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          {deletingProjectId === project.id ? (
+            <>
+              <button
+                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                onClick={() => onDeleteProject(project.id)}
+              >
+                Confirm delete
+              </button>
+              <button
+                className="text-xs text-slate-400"
+                onClick={() => onRequestDeleteProject(null)}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+              onClick={() => onRequestDeleteProject(project.id)}
+            >
+              Delete Project
+            </button>
+          )}
         </div>
       </header>
 
@@ -336,7 +364,7 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 px-4 pb-12 sm:px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
+      <section className="px-4 pb-12 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-200">Budget Line Items</div>
@@ -351,21 +379,36 @@ const ProjectDetailView = ({ projectId, token }: Props) => {
             {lineItems.length === 0 ? (
               <div className="text-slate-400">No line items yet.</div>
             ) : (
-              lineItems.map((item) => (
-                <div key={item.id} className="py-3">
-                  <div className="font-medium text-slate-100">{item.description}</div>
-                  <div className="text-xs text-slate-400">
-                    ${item.budgetedAmount.toLocaleString()}
+              lineItems.map((item) => {
+                const spent = expenses
+                  .filter((e) => e.lineItemId === item.id)
+                  .reduce((sum, e) => sum + e.amount, 0);
+                const pct = Math.min((spent / item.budgetedAmount) * 100, 100);
+                const over = spent > item.budgetedAmount;
+                const remaining = item.budgetedAmount - spent;
+                return (
+                  <div key={item.id} className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-slate-100">{item.description}</div>
+                      <div className="text-xs text-slate-400">
+                        ${spent.toLocaleString()} / ${item.budgetedAmount.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+                      <div
+                        className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : 'bg-accent'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className={`mt-1 text-xs ${over ? 'text-red-400' : 'text-slate-500'}`}>
+                      {over
+                        ? `$${Math.abs(remaining).toLocaleString()} over budget`
+                        : `$${remaining.toLocaleString()} remaining`}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
-          </div>
-        </div>
-        <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="text-sm font-semibold text-slate-200">Documents (Coming Soon)</div>
-          <div className="mt-3 text-sm text-slate-400">
-            Will load from `/projects/:id/documents` when available.
           </div>
         </div>
       </section>

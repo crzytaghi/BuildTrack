@@ -18,12 +18,15 @@ type Props = {
   submitAttempted: boolean;
   form: ExpenseFormState;
   editingExpenseId: string | null;
+  deletingExpenseId: string | null;
   onFilterChange: (next: Props['filters']) => void;
   onFormChange: (next: ExpenseFormState) => void;
   onCreateExpense: () => void;
   onSubmit: () => void;
   onCancelEdit: () => void;
   onEditExpense: (expense: ExpenseItem) => void;
+  onRequestDeleteExpense: (id: string | null) => void;
+  onDeleteExpense: (id: string) => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -41,12 +44,15 @@ const ExpensesView = ({
   submitAttempted,
   form,
   editingExpenseId,
+  deletingExpenseId,
   onFilterChange,
   onFormChange,
   onCreateExpense,
   onSubmit,
   onCancelEdit,
   onEditExpense,
+  onRequestDeleteExpense,
+  onDeleteExpense,
 }: Props) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -250,12 +256,39 @@ const ExpensesView = ({
                             <div className="text-sm font-semibold text-slate-100">
                               {fmt.format(expense.amount)}
                             </div>
-                            <button
-                              className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                              onClick={() => onEditExpense(expense)}
-                            >
-                              Edit
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {deletingExpenseId === expense.id ? (
+                                <>
+                                  <button
+                                    className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                    onClick={() => onDeleteExpense(expense.id)}
+                                  >
+                                    Confirm delete
+                                  </button>
+                                  <button
+                                    className="text-xs text-slate-400"
+                                    onClick={() => onRequestDeleteExpense(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                    onClick={() => onEditExpense(expense)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                    onClick={() => onRequestDeleteExpense(expense.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

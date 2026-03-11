@@ -145,6 +145,12 @@ const AppShell = () => {
   const [quoteCreateOpen, setQuoteCreateOpen] = useState(false);
   const [quoteSubmitAttempted, setQuoteSubmitAttempted] = useState(false);
   const [budgetProjectFilter, setBudgetProjectFilter] = useState('');
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [deletingVendorId, setDeletingVendorId] = useState<string | null>(null);
+  const [deletingLineItemId, setDeletingLineItemId] = useState<string | null>(null);
+  const [deletingQuoteId, setDeletingQuoteId] = useState<string | null>(null);
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -792,6 +798,51 @@ const AppShell = () => {
     }
   };
 
+  const handleTaskDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setDeletingTaskId(null);
+  };
+
+  const handleExpenseDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/expenses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    setDeletingExpenseId(null);
+  };
+
+  const handleVendorDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/vendors/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setVendors((prev) => prev.filter((v) => v.id !== id));
+    setDeletingVendorId(null);
+  };
+
+  const handleLineItemDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/budget-line-items/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setLineItems((prev) => prev.filter((li) => li.id !== id));
+    setQuotes((prev) => prev.filter((q) => q.lineItemId !== id));
+    if (selectedLineItemId === id) setSelectedLineItemId(null);
+    setDeletingLineItemId(null);
+  };
+
+  const handleQuoteDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/quotes/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setQuotes((prev) => prev.filter((q) => q.id !== id));
+    setDeletingQuoteId(null);
+  };
+
+  const handleProjectDelete = async (id: string) => {
+    if (!token) return;
+    await fetch(`${API_BASE}/projects/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    setDeletingProjectId(null);
+    navigate('/projects');
+  };
+
   const handleLogout = async () => {
     if (token) {
       await fetch(`${API_BASE}/auth/logout`, {
@@ -1028,7 +1079,14 @@ const AppShell = () => {
             />
             <Route
               path="/projects/:id"
-              element={<ProjectDetailRoute token={token ?? ''} />}
+              element={
+                <ProjectDetailRoute
+                  token={token ?? ''}
+                  deletingProjectId={deletingProjectId}
+                  onRequestDeleteProject={setDeletingProjectId}
+                  onDeleteProject={handleProjectDelete}
+                />
+              }
             />
             <Route
               path="/expenses"
@@ -1057,6 +1115,9 @@ const AppShell = () => {
                   onSubmit={handleExpenseSubmit}
                   onCancelEdit={closeExpenseForm}
                   onEditExpense={selectExpenseForEdit}
+                  deletingExpenseId={deletingExpenseId}
+                  onRequestDeleteExpense={setDeletingExpenseId}
+                  onDeleteExpense={handleExpenseDelete}
                 />
               }
             />
@@ -1084,6 +1145,9 @@ const AppShell = () => {
                   onSubmit={handleTaskSubmit}
                   onCancelEdit={closeTaskForm}
                   onEditTask={selectTaskForEdit}
+                  deletingTaskId={deletingTaskId}
+                  onRequestDeleteTask={setDeletingTaskId}
+                  onDeleteTask={handleTaskDelete}
                 />
               }
             />
@@ -1109,6 +1173,9 @@ const AppShell = () => {
                   onSubmit={handleVendorSubmit}
                   onCancelEdit={closeVendorForm}
                   onEditVendor={selectVendorForEdit}
+                  deletingVendorId={deletingVendorId}
+                  onRequestDeleteVendor={setDeletingVendorId}
+                  onDeleteVendor={handleVendorDelete}
                 />
               }
             />
@@ -1165,6 +1232,12 @@ const AppShell = () => {
                   onQuoteCancelEdit={closeQuoteForm}
                   onAwardQuote={handleAwardQuote}
                   onEditQuote={selectQuoteForEdit}
+                  deletingLineItemId={deletingLineItemId}
+                  onRequestDeleteLineItem={setDeletingLineItemId}
+                  onDeleteLineItem={handleLineItemDelete}
+                  deletingQuoteId={deletingQuoteId}
+                  onRequestDeleteQuote={setDeletingQuoteId}
+                  onDeleteQuote={handleQuoteDelete}
                 />
               }
             />
@@ -1175,10 +1248,28 @@ const AppShell = () => {
   );
 };
 
-const ProjectDetailRoute = ({ token }: { token: string }) => {
+const ProjectDetailRoute = ({
+  token,
+  deletingProjectId,
+  onRequestDeleteProject,
+  onDeleteProject,
+}: {
+  token: string;
+  deletingProjectId: string | null;
+  onRequestDeleteProject: (id: string | null) => void;
+  onDeleteProject: (id: string) => void;
+}) => {
   const { id } = useParams();
   if (!id) return null;
-  return <ProjectDetailView projectId={id} token={token} />;
+  return (
+    <ProjectDetailView
+      projectId={id}
+      token={token}
+      deletingProjectId={deletingProjectId}
+      onRequestDeleteProject={onRequestDeleteProject}
+      onDeleteProject={onDeleteProject}
+    />
+  );
 };
 
 const App = () => (
