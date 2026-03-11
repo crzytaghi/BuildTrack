@@ -1,8 +1,10 @@
-import type { ExpenseItem, VendorFormState, VendorItem } from '../types/projects';
+import { useState } from 'react';
+import type { ExpenseItem, ProjectItem, VendorFormState, VendorItem } from '../types/projects';
 
 type Props = {
   vendors: VendorItem[];
   expenses: ExpenseItem[];
+  projects: ProjectItem[];
   loading: boolean;
   error: string | null;
   form: VendorFormState;
@@ -24,6 +26,7 @@ const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD',
 const VendorsView = ({
   vendors,
   expenses,
+  projects,
   loading,
   error,
   form,
@@ -39,6 +42,10 @@ const VendorsView = ({
   onRequestDeleteVendor,
   onDeleteVendor,
 }: Props) => {
+  const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
+  const [spendFromDate, setSpendFromDate] = useState('');
+  const [spendToDate, setSpendToDate] = useState('');
+
   const spendByVendor = expenses.reduce<Record<string, number>>((acc, e) => {
     acc[e.vendorId] = (acc[e.vendorId] ?? 0) + e.amount;
     return acc;
@@ -168,6 +175,16 @@ const VendorsView = ({
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          <button
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              selectedVendorId === vendor.id
+                                ? 'bg-accent text-slate-950'
+                                : 'border border-slate-700 text-slate-200'
+                            }`}
+                            onClick={() => setSelectedVendorId(selectedVendorId === vendor.id ? null : vendor.id)}
+                          >
+                            Spend
+                          </button>
                           {deletingVendorId === vendor.id ? (
                             <>
                               <button
@@ -209,6 +226,103 @@ const VendorsView = ({
           </div>
         </div>
       </section>
+
+      {selectedVendorId && (() => {
+        const selectedVendor = vendors.find((v) => v.id === selectedVendorId);
+
+        const filteredExpenses = expenses.filter((e) => {
+          if (e.vendorId !== selectedVendorId) return false;
+          if (spendFromDate && e.expenseDate < spendFromDate) return false;
+          if (spendToDate && e.expenseDate > spendToDate) return false;
+          return true;
+        });
+
+        const byProject = filteredExpenses.reduce<Record<string, { spend: number; count: number }>>(
+          (acc, e) => {
+            if (!acc[e.projectId]) acc[e.projectId] = { spend: 0, count: 0 };
+            acc[e.projectId].spend += e.amount;
+            acc[e.projectId].count += 1;
+            return acc;
+          },
+          {}
+        );
+
+        const grandTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+        return (
+          <section className="px-4 pb-8 sm:px-6 lg:px-8">
+            <div className="rounded-2xl bg-panel p-6 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-200">
+                  Spend — {selectedVendor?.name}
+                </div>
+                <button
+                  className="text-xs uppercase tracking-wide text-slate-400"
+                  onClick={() => setSelectedVendorId(null)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">From</label>
+                  <input
+                    type="date"
+                    value={spendFromDate}
+                    onChange={(e) => setSpendFromDate(e.target.value)}
+                    className="rounded-xl bg-surface px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-800"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">To</label>
+                  <input
+                    type="date"
+                    value={spendToDate}
+                    onChange={(e) => setSpendToDate(e.target.value)}
+                    className="rounded-xl bg-surface px-3 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-800"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5">
+                {Object.keys(byProject).length === 0 ? (
+                  <div className="text-sm text-slate-400">No expenses found for this vendor in the selected date range.</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800 text-left text-xs text-slate-400">
+                        <th className="pb-2 font-medium">Project</th>
+                        <th className="pb-2 font-medium text-right">Expenses</th>
+                        <th className="pb-2 font-medium text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {Object.entries(byProject).map(([projectId, { spend, count }]) => {
+                        const project = projects.find((p) => p.id === projectId);
+                        return (
+                          <tr key={projectId}>
+                            <td className="py-2 text-slate-100">{project?.name ?? projectId}</td>
+                            <td className="py-2 text-right text-slate-300">{count}</td>
+                            <td className="py-2 text-right text-slate-100">{fmt.format(spend)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-slate-700">
+                        <td className="pt-3 font-semibold text-slate-200">Total</td>
+                        <td />
+                        <td className="pt-3 text-right font-semibold text-accent">{fmt.format(grandTotal)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
     </>
   );
 };

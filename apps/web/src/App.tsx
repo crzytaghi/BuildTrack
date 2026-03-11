@@ -1167,6 +1167,7 @@ const AppShell = () => {
                 <VendorsView
                   vendors={vendors}
                   expenses={expenses}
+                  projects={projects}
                   loading={vendorsLoading}
                   error={vendorsError}
                   form={vendorForm}
