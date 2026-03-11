@@ -59,6 +59,28 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     return { data: updated };
   });
 
+  app.delete('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const project = db.projects.get(id);
+    if (!project) return reply.code(404).send({ error: 'Not found' });
+    db.projects.delete(id);
+    for (const [tid, task] of db.tasks) {
+      if (task.projectId === id) db.tasks.delete(tid);
+    }
+    for (const [eid, expense] of db.expenses) {
+      if (expense.projectId === id) db.expenses.delete(eid);
+    }
+    for (const [liid, li] of db.budgetLineItems) {
+      if (li.projectId === id) {
+        db.budgetLineItems.delete(liid);
+        for (const [qid, q] of db.quotes) {
+          if (q.lineItemId === liid) db.quotes.delete(qid);
+        }
+      }
+    }
+    reply.code(204).send();
+  });
+
   app.get('/projects/:id/tasks', { preHandler: requireAuth }, async (req) => {
     const id = (req.params as { id: string }).id;
     const data = Array.from(db.tasks.values()).filter((t) => t.projectId === id);
@@ -125,6 +147,14 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     const updated = { ...task, ...body };
     db.tasks.set(id, updated);
     return { data: updated };
+  });
+
+  app.delete('/tasks/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const task = db.tasks.get(id);
+    if (!task) return reply.code(404).send({ error: 'Not found' });
+    db.tasks.delete(id);
+    reply.code(204).send();
   });
 
   app.get('/projects/:id/expenses', { preHandler: requireAuth }, async (req) => {
@@ -194,6 +224,14 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     return { data: updated };
   });
 
+  app.delete('/expenses/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const expense = db.expenses.get(id);
+    if (!expense) return reply.code(404).send({ error: 'Not found' });
+    db.expenses.delete(id);
+    reply.code(204).send();
+  });
+
   app.get('/categories', { preHandler: requireAuth }, async () => ({
     data: Array.from(db.categories.values()),
   }));
@@ -239,6 +277,14 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     const updated = { ...vendor, ...body };
     db.vendors.set(id, updated);
     return { data: updated };
+  });
+
+  app.delete('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const vendor = db.vendors.get(id);
+    if (!vendor) return reply.code(404).send({ error: 'Not found' });
+    db.vendors.delete(id);
+    reply.code(204).send();
   });
 
   app.get('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
@@ -305,6 +351,17 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     return { data: updated };
   });
 
+  app.delete('/budget-line-items/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const lineItem = db.budgetLineItems.get(id);
+    if (!lineItem) return reply.code(404).send({ error: 'Not found' });
+    db.budgetLineItems.delete(id);
+    for (const [qid, q] of db.quotes) {
+      if (q.lineItemId === id) db.quotes.delete(qid);
+    }
+    reply.code(204).send();
+  });
+
   // Quotes
   app.get('/projects/:id/quotes', { preHandler: requireAuth }, async (req) => {
     const id = (req.params as { id: string }).id;
@@ -361,6 +418,13 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     }
 
     return { data: updated };
+  });
+  app.delete('/quotes/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const id = (req.params as { id: string }).id;
+    const quote = db.quotes.get(id);
+    if (!quote) return reply.code(404).send({ error: 'Not found' });
+    db.quotes.delete(id);
+    reply.code(204).send();
   });
 };
 
