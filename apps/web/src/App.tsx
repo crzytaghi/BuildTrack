@@ -40,12 +40,6 @@ const nav = [
   'Settings',
 ];
 
-const kpis = [
-  { label: 'Total Budget', value: '$1.42M', tone: 'bg-emerald-400' },
-  { label: 'Actual Spend', value: '$620k', tone: 'bg-amber-400' },
-  { label: 'Variance', value: '$800k', tone: 'bg-sky-400' },
-  { label: 'Active Projects', value: '4', tone: 'bg-violet-400' },
-];
 
 const getStoredToken = () => localStorage.getItem('bt_token');
 
@@ -193,7 +187,7 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    if (!token || !user || (location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses' && location.pathname !== '/vendors' && location.pathname !== '/budget')) return;
+    if (!token || !user || (location.pathname !== '/' && location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses' && location.pathname !== '/vendors' && location.pathname !== '/budget')) return;
     const load = async () => {
       if (location.pathname === '/projects') {
         setProjectsLoading(true);
@@ -218,8 +212,8 @@ const AppShell = () => {
   }, [location.pathname, token, user]);
 
   useEffect(() => {
-    if (!token || !user || location.pathname !== '/tasks') return;
-    if (location.search) {
+    if (!token || !user || (location.pathname !== '/tasks' && location.pathname !== '/')) return;
+    if (location.pathname === '/tasks' && location.search) {
       const params = new URLSearchParams(location.search);
       const projectId = params.get('projectId') ?? '';
       if (projectId && projectId !== taskFilters.projectId) {
@@ -227,14 +221,18 @@ const AppShell = () => {
       }
     }
     const loadTasks = async () => {
-      setTasksLoading(true);
-      setTasksError(null);
+      if (location.pathname === '/tasks') {
+        setTasksLoading(true);
+        setTasksError(null);
+      }
       try {
         const params = new URLSearchParams();
-        if (taskFilters.projectId) params.set('projectId', taskFilters.projectId);
-        if (taskFilters.status) params.set('status', taskFilters.status);
-        if (taskFilters.fromDate) params.set('fromDate', taskFilters.fromDate);
-        if (taskFilters.toDate) params.set('toDate', taskFilters.toDate);
+        if (location.pathname === '/tasks') {
+          if (taskFilters.projectId) params.set('projectId', taskFilters.projectId);
+          if (taskFilters.status) params.set('status', taskFilters.status);
+          if (taskFilters.fromDate) params.set('fromDate', taskFilters.fromDate);
+          if (taskFilters.toDate) params.set('toDate', taskFilters.toDate);
+        }
         const res = await fetch(`${API_BASE}/tasks?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -242,17 +240,17 @@ const AppShell = () => {
         const data = (await res.json()) as { data: TaskItem[] };
         setTasks(data.data);
       } catch (err) {
-        setTasksError(err instanceof Error ? err.message : 'Unable to load tasks');
+        if (location.pathname === '/tasks') setTasksError(err instanceof Error ? err.message : 'Unable to load tasks');
       } finally {
-        setTasksLoading(false);
+        if (location.pathname === '/tasks') setTasksLoading(false);
       }
     };
     loadTasks();
   }, [location.pathname, taskFilters, token, user]);
 
   useEffect(() => {
-    if (!token || !user || location.pathname !== '/expenses') return;
-    if (location.search) {
+    if (!token || !user || (location.pathname !== '/expenses' && location.pathname !== '/')) return;
+    if (location.pathname === '/expenses' && location.search) {
       const params = new URLSearchParams(location.search);
       const projectId = params.get('projectId') ?? '';
       if (projectId && projectId !== expenseFilters.projectId) {
@@ -260,14 +258,18 @@ const AppShell = () => {
       }
     }
     const loadExpenses = async () => {
-      setExpensesLoading(true);
-      setExpensesError(null);
+      if (location.pathname === '/expenses') {
+        setExpensesLoading(true);
+        setExpensesError(null);
+      }
       try {
         const params = new URLSearchParams();
-        if (expenseFilters.projectId) params.set('projectId', expenseFilters.projectId);
-        if (expenseFilters.categoryId) params.set('categoryId', expenseFilters.categoryId);
-        if (expenseFilters.fromDate) params.set('fromDate', expenseFilters.fromDate);
-        if (expenseFilters.toDate) params.set('toDate', expenseFilters.toDate);
+        if (location.pathname === '/expenses') {
+          if (expenseFilters.projectId) params.set('projectId', expenseFilters.projectId);
+          if (expenseFilters.categoryId) params.set('categoryId', expenseFilters.categoryId);
+          if (expenseFilters.fromDate) params.set('fromDate', expenseFilters.fromDate);
+          if (expenseFilters.toDate) params.set('toDate', expenseFilters.toDate);
+        }
         const res = await fetch(`${API_BASE}/expenses?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -275,19 +277,21 @@ const AppShell = () => {
         const data = (await res.json()) as { data: ExpenseItem[] };
         setExpenses(data.data);
       } catch (err) {
-        setExpensesError(err instanceof Error ? err.message : 'Unable to load expenses');
+        if (location.pathname === '/expenses') setExpensesError(err instanceof Error ? err.message : 'Unable to load expenses');
       } finally {
-        setExpensesLoading(false);
+        if (location.pathname === '/expenses') setExpensesLoading(false);
       }
     };
     loadExpenses();
   }, [location.pathname, expenseFilters, token, user]);
 
   useEffect(() => {
-    if (!token || !user || location.pathname !== '/vendors') return;
+    if (!token || !user || (location.pathname !== '/vendors' && location.pathname !== '/')) return;
     const loadVendors = async () => {
-      setVendorsLoading(true);
-      setVendorsError(null);
+      if (location.pathname === '/vendors') {
+        setVendorsLoading(true);
+        setVendorsError(null);
+      }
       try {
         const res = await fetch(`${API_BASE}/vendors`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -303,9 +307,9 @@ const AppShell = () => {
           setExpenses(expData.data);
         }
       } catch (err) {
-        setVendorsError(err instanceof Error ? err.message : 'Unable to load vendors');
+        if (location.pathname === '/vendors') setVendorsError(err instanceof Error ? err.message : 'Unable to load vendors');
       } finally {
-        setVendorsLoading(false);
+        if (location.pathname === '/vendors') setVendorsLoading(false);
       }
     };
     loadVendors();
@@ -974,6 +978,47 @@ const AppShell = () => {
     );
   }
 
+  const fmtCompact = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
+
+  const totalBudget = projects.reduce((sum, p) => sum + (p.budgetTotal ?? 0), 0);
+  const totalSpend = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const variance = totalBudget - totalSpend;
+  const activeProjects = projects.filter((p) => p.status === 'active').length;
+
+  const kpis = [
+    { label: 'Total Budget', value: fmtCompact.format(totalBudget), tone: 'bg-emerald-400' },
+    { label: 'Actual Spend', value: fmtCompact.format(totalSpend), tone: 'bg-amber-400' },
+    { label: 'Variance', value: fmtCompact.format(variance), tone: variance >= 0 ? 'bg-sky-400' : 'bg-red-400' },
+    { label: 'Active Projects', value: String(activeProjects), tone: 'bg-violet-400' },
+  ];
+
+  const today = new Date().toISOString().slice(0, 10);
+  const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const tasksDueSoon = tasks
+    .filter((t) => t.status !== 'done' && t.dueDate && t.dueDate >= today && t.dueDate <= sevenDaysOut)
+    .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
+    .slice(0, 5)
+    .map((t) => ({ ...t, projectName: projects.find((p) => p.id === t.projectId)?.name ?? 'Unknown Project' }));
+
+  const recentExpenses = [...expenses]
+    .sort((a, b) => b.expenseDate.localeCompare(a.expenseDate))
+    .slice(0, 5)
+    .map((e) => ({
+      ...e,
+      vendorName: vendors.find((v) => v.id === e.vendorId)?.name ?? 'Unknown Vendor',
+      projectName: projects.find((p) => p.id === e.projectId)?.name ?? 'Unknown Project',
+    }));
+
+  const spendByProject = expenses.reduce<Record<string, number>>((acc, e) => {
+    acc[e.projectId] = (acc[e.projectId] ?? 0) + e.amount;
+    return acc;
+  }, {});
+
+  const projectSpendData = projects
+    .filter((p) => (p.budgetTotal ?? 0) > 0 || spendByProject[p.id])
+    .map((p) => ({ name: p.name, budget: p.budgetTotal ?? 0, actual: spendByProject[p.id] ?? 0 }));
+
   return (
     <div className="min-h-screen bg-ink text-slate-100">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
@@ -1065,6 +1110,9 @@ const AppShell = () => {
                   userName={user?.name ?? 'Builder'}
                   companyName={companyName ?? 'Company'}
                   kpis={kpis}
+                  tasksDueSoon={tasksDueSoon}
+                  recentExpenses={recentExpenses}
+                  projectSpendData={projectSpendData}
                   headerActions={
                     <button className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-slate-950 shadow">
                       Export CSV
