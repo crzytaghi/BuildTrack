@@ -380,16 +380,14 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
               <div className="text-slate-400">No tasks yet.</div>
             ) : (
               tasks.map((task) => (
-                <div key={task.id} className="py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-100">{task.title}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
-                      {taskStatusLabel[task.status] ?? task.status}
-                    </span>
+                <div key={task.id} className="flex items-center justify-between py-3">
+                  <div>
+                    <div className="font-medium text-slate-100">{task.title}</div>
+                    <div className="mt-0.5 text-xs text-slate-400">{task.dueDate ?? 'No due date'}</div>
                   </div>
-                  <div className="mt-0.5 text-xs text-slate-400">
-                    {task.dueDate ?? 'No due date'}
-                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
+                    {taskStatusLabel[task.status] ?? task.status}
+                  </span>
                 </div>
               ))
             )}
