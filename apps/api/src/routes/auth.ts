@@ -1,18 +1,19 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import { db, User } from '../store.js';
+import type { PrismaClient } from '@prisma/client';
+import type { User, Session } from '../store.js';
 
 type AuthPluginOptions = {
+  prisma: PrismaClient;
   hashPassword: (password: string, salt: string) => string;
-  createSession: (userId: string) => { token: string };
+  createSession: (userId: string) => Promise<{ token: string }>;
   getAuthUser: (req: { headers: Record<string, string | string[] | undefined> }) =>
-    | { user: User; session: { token: string } }
-    | null;
+    Promise<{ user: User; session: { token: string } } | null>;
 };
 
 const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
-  const { hashPassword, createSession, getAuthUser } = options;
+  const { hashPassword, createSession, getAuthUser, prisma } = options;
 
   app.post('/auth/signup', async (req, reply) => {
     const body = z
@@ -23,8 +24,12 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       })
       .parse(req.body);
 
-    const existing = Array.from(db.users.values()).find((u) => u.email === body.email);
+    const existing = await prisma.user.findUnique({ where: { email: body.email } });
     if (existing) return reply.code(409).send({ error: 'Email already in use' });
+
+    const company = await prisma.company.create({
+      data: { name: `${body.name}'s Company`, companySetupComplete: false },
+    });
 
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = hashPassword(body.password, salt);
@@ -35,10 +40,11 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       passwordHash,
       passwordSalt: salt,
       createdAt: new Date().toISOString(),
+      companyId: company.id,
     };
-    db.users.set(user.id, user);
+    await prisma.user.create({ data: user });
 
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
     return reply.code(201).send({
       token: session.token,
       user: { id: user.id, email: user.email, name: user.name },
@@ -53,13 +59,13 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       })
       .parse(req.body);
 
-    const user = Array.from(db.users.values()).find((u) => u.email === body.email);
+    const user = await prisma.user.findUnique({ where: { email: body.email } });
     if (!user) return reply.code(401).send({ error: 'Invalid credentials' });
 
     const candidate = hashPassword(body.password, user.passwordSalt);
     if (candidate !== user.passwordHash) return reply.code(401).send({ error: 'Invalid credentials' });
 
-    const session = createSession(user.id);
+    const session = await createSession(user.id);
     return reply.send({
       token: session.token,
       user: { id: user.id, email: user.email, name: user.name },
@@ -67,13 +73,15 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
   });
 
   app.post('/auth/logout', async (req, reply) => {
-    const auth = getAuthUser(req);
-    if (auth) db.sessions.delete(auth.session.token);
+    const auth = await getAuthUser(req);
+    if (auth) {
+      await prisma.session.delete({ where: { token: auth.session.token } });
+    }
     reply.send({ ok: true });
   });
 
   app.get('/auth/me', async (req, reply) => {
-    const auth = getAuthUser(req);
+    const auth = await getAuthUser(req);
     if (!auth) return reply.code(401).send({ error: 'Unauthorized' });
     return { user: { id: auth.user.id, email: auth.user.email, name: auth.user.name } };
   });

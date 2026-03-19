@@ -10,11 +10,10 @@ type CompanyPluginOptions = {
 const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions) => {
   const { prisma, requireAuth } = options;
 
-  app.get('/company/me', { preHandler: requireAuth }, async () => {
-    const company = await prisma.company.findFirst();
-    if (!company) {
-      return { company: null };
-    }
+  app.get('/company/me', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) return { company: null };
     return {
       company: {
         id: company.id,
@@ -31,25 +30,9 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
       })
       .parse(req.body);
 
-    const company = await prisma.company.findFirst();
-    if (!company) {
-      const created = await prisma.company.create({
-        data: {
-          name: body.name,
-          companySetupComplete: true,
-        },
-      });
-      return reply.code(201).send({
-        company: {
-          id: created.id,
-          name: created.name,
-          companySetupComplete: created.companySetupComplete,
-        },
-      });
-    }
-
+    const { companyId } = (req as any).auth.user;
     const updated = await prisma.company.update({
-      where: { id: company.id },
+      where: { id: companyId },
       data: { name: body.name, companySetupComplete: true },
     });
 

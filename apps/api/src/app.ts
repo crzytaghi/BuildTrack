@@ -3,8 +3,8 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { ZodError } from 'zod';
 import crypto from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
-import { db, seed, Session, User } from './store.js';
+import { prisma } from './lib/prisma.js';
+import { seed, Session, User } from './store.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import healthRoutes from './routes/health.js';
@@ -15,39 +15,37 @@ const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const hashPassword = (password: string, salt: string) =>
   crypto.pbkdf2Sync(password, salt, 120000, 64, 'sha512').toString('hex');
 
-const createSession = (userId: string): Session => {
+const createSession = async (userId: string): Promise<Session> => {
   const token = crypto.randomBytes(32).toString('hex');
-  const session: Session = { token, userId, expiresAt: Date.now() + SESSION_TTL_MS };
-  db.sessions.set(token, session);
-  return session;
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  await prisma.session.create({ data: { token, userId, expiresAt } });
+  return { token, userId, expiresAt };
 };
 
-const getAuthUser = (req: { headers: Record<string, string | string[] | undefined> }) => {
-  // TODO: Reject requests with multiple Authorization headers for stricter validation.
+const getAuthUser = async (req: { headers: Record<string, string | string[] | undefined> }) => {
   const rawHeader = req.headers.authorization;
   const header = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
   if (!header) return null;
   const [type, token] = header.split(' ');
   if (type !== 'Bearer' || !token) return null;
-  const session = db.sessions.get(token);
+  const session = await prisma.session.findUnique({ where: { token } });
   if (!session) return null;
   if (session.expiresAt < Date.now()) {
-    db.sessions.delete(token);
+    await prisma.session.delete({ where: { token } });
     return null;
   }
-  const user = db.users.get(session.userId);
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return null;
-  return { user, session };
+  return { user: user as User, session: { token: session.token } };
 };
 
-const requireAuth = (req: any, reply: any, done: any) => {
-  const auth = getAuthUser(req);
+const requireAuth = async (req: any, reply: any) => {
+  const auth = await getAuthUser(req);
   if (!auth) {
     reply.code(401).send({ error: 'Unauthorized' });
     return;
   }
   (req as any).auth = auth;
-  done();
 };
 
 export const buildApp = async () => {
@@ -55,18 +53,9 @@ export const buildApp = async () => {
   await app.register(cors, { origin: true });
   await app.register(helmet);
 
-  seed();
+  await seed();
   const API_PREFIX = '/api/v1';
-  const prisma = new PrismaClient();
-  await prisma.$connect();
 
-  const ensureCompany = async () => {
-    const existing = await prisma.company.findFirst();
-    if (!existing) {
-      await prisma.company.create({ data: { name: 'BuildTrack', companySetupComplete: false } });
-    }
-  };
-  await ensureCompany();
   app.addHook('onClose', async () => {
     await prisma.$disconnect();
   });
@@ -80,8 +69,8 @@ export const buildApp = async () => {
   });
 
   await app.register(healthRoutes, { prefix: API_PREFIX });
-  await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser });
-  await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth });
+  await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser, prisma });
+  await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth, prisma });
   await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth });
 
   return app;

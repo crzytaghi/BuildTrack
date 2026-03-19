@@ -1,19 +1,26 @@
 import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
-import { db } from '../store.js';
+import type { PrismaClient } from '@prisma/client';
 
 type ProjectPluginOptions = {
-  requireAuth: (req: any, reply: any, done: any) => void;
+  prisma: PrismaClient;
+  requireAuth: (req: any, reply: any) => Promise<void>;
 };
 
+const stripNulls = (obj: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== null));
+
 const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions) => {
-  const { requireAuth } = options;
-  app.get('/projects', { preHandler: requireAuth }, async () => ({
-    data: Array.from(db.projects.values()),
-  }));
+  const { requireAuth, prisma } = options;
+
+  app.get('/projects', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
+    return { data: await prisma.project.findMany({ where: { companyId } }) };
+  });
 
   app.post('/projects', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const body = z
       .object({
         name: z.string().min(1),
@@ -26,22 +33,24 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `proj_${Date.now()}`;
-    const project = { id, ...body };
-    db.projects.set(id, project);
+    const project = await prisma.project.create({ data: { id, companyId, ...body } });
     reply.code(201).send({ data: project });
   });
 
   app.get('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const project = db.projects.get(id);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project || project.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
     return { data: project };
   });
 
   app.patch('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const project = db.projects.get(id);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
+
+    const existing = await prisma.project.findUnique({ where: { id } });
+    if (!existing || existing.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -54,69 +63,63 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...project, ...body };
-    db.projects.set(id, updated);
+    const updated = await prisma.project.update({ where: { id }, data: body });
     return { data: updated };
   });
 
   app.delete('/projects/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const project = db.projects.get(id);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
-    db.projects.delete(id);
-    for (const [tid, task] of db.tasks) {
-      if (task.projectId === id) db.tasks.delete(tid);
-    }
-    for (const [eid, expense] of db.expenses) {
-      if (expense.projectId === id) db.expenses.delete(eid);
-    }
-    for (const [liid, li] of db.budgetLineItems) {
-      if (li.projectId === id) {
-        db.budgetLineItems.delete(liid);
-        for (const [qid, q] of db.quotes) {
-          if (q.lineItemId === liid) db.quotes.delete(qid);
-        }
-      }
-    }
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project || project.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
+    await prisma.project.delete({ where: { id } });
     reply.code(204).send();
   });
 
   app.get('/projects/:id/tasks', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const data = Array.from(db.tasks.values()).filter((t) => t.projectId === id);
+    const data = await prisma.task.findMany({ where: { projectId: id, project: { companyId } } });
     return { data };
   });
 
   app.get('/tasks', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const query = (req.query as {
       projectId?: string;
-      status?: 'todo' | 'in_progress' | 'blocked' | 'done';
+      status?: string;
       fromDate?: string;
       toDate?: string;
     }) ?? {};
 
-    const from = query.fromDate ? Date.parse(query.fromDate) : null;
-    const to = query.toDate ? Date.parse(query.toDate) : null;
+    const where: Record<string, unknown> = { project: { companyId } };
+    if (query.projectId) where.projectId = query.projectId;
+    if (query.status) where.status = query.status;
+    if (query.fromDate || query.toDate) {
+      const dateFilter: Record<string, string> = {};
+      if (query.fromDate) dateFilter.gte = query.fromDate;
+      if (query.toDate) dateFilter.lte = query.toDate;
+      where.dueDate = dateFilter;
+    }
 
-    const data = Array.from(db.tasks.values()).filter((task) => {
-      if (query.projectId && task.projectId !== query.projectId) return false;
-      if (query.status && task.status !== query.status) return false;
-      if (from && task.dueDate && Date.parse(task.dueDate) < from) return false;
-      if (to && task.dueDate && Date.parse(task.dueDate) > to) return false;
-      return true;
-    });
+    const data = await prisma.task.findMany({ where });
     return { data };
   });
 
   app.get('/tasks/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const task = db.tasks.get(id);
+    const task = await prisma.task.findFirst({ where: { id, project: { companyId } } });
     if (!task) return reply.code(404).send({ error: 'Not found' });
     return { data: task };
   });
 
   app.post('/projects/:id/tasks', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const projectId = (req.params as { id: string }).id;
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
+
     const body = z
       .object({
         title: z.string().min(1),
@@ -126,15 +129,16 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `task_${Date.now()}`;
-    const task = { id, projectId, ...body };
-    db.tasks.set(id, task);
+    const task = await prisma.task.create({ data: { id, projectId, ...body } });
     reply.code(201).send({ data: task });
   });
 
   app.patch('/tasks/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const task = db.tasks.get(id);
-    if (!task) return reply.code(404).send({ error: 'Not found' });
+
+    const existing = await prisma.task.findFirst({ where: { id, project: { companyId } } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -144,27 +148,32 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...task, ...body };
-    db.tasks.set(id, updated);
+    const updated = await prisma.task.update({ where: { id }, data: body });
     return { data: updated };
   });
 
   app.delete('/tasks/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const task = db.tasks.get(id);
+    const task = await prisma.task.findFirst({ where: { id, project: { companyId } } });
     if (!task) return reply.code(404).send({ error: 'Not found' });
-    db.tasks.delete(id);
+    await prisma.task.delete({ where: { id } });
     reply.code(204).send();
   });
 
   app.get('/projects/:id/expenses', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const data = Array.from(db.expenses.values()).filter((e) => e.projectId === id);
-    return { data };
+    const rows = await prisma.expense.findMany({ where: { projectId: id, project: { companyId } } });
+    return { data: rows.map(stripNulls) };
   });
 
   app.post('/projects/:id/expenses', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const projectId = (req.params as { id: string }).id;
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
+
     const body = z
       .object({
         amount: z.number(),
@@ -177,12 +186,12 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `exp_${Date.now()}`;
-    const expense = { id, projectId, ...body };
-    db.expenses.set(id, expense);
-    reply.code(201).send({ data: expense });
+    const expense = await prisma.expense.create({ data: { id, projectId, ...body } });
+    return reply.code(201).send({ data: stripNulls(expense as Record<string, unknown>) });
   });
 
   app.get('/expenses', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const query = (req.query as {
       projectId?: string;
       categoryId?: string;
@@ -190,23 +199,26 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       toDate?: string;
     }) ?? {};
 
-    const from = query.fromDate ? Date.parse(query.fromDate) : null;
-    const to = query.toDate ? Date.parse(query.toDate) : null;
+    const where: Record<string, unknown> = { project: { companyId } };
+    if (query.projectId) where.projectId = query.projectId;
+    if (query.categoryId) where.categoryId = query.categoryId;
+    if (query.fromDate || query.toDate) {
+      const dateFilter: Record<string, string> = {};
+      if (query.fromDate) dateFilter.gte = query.fromDate;
+      if (query.toDate) dateFilter.lte = query.toDate;
+      where.expenseDate = dateFilter;
+    }
 
-    const data = Array.from(db.expenses.values()).filter((expense) => {
-      if (query.projectId && expense.projectId !== query.projectId) return false;
-      if (query.categoryId && expense.categoryId !== query.categoryId) return false;
-      if (from && Date.parse(expense.expenseDate) < from) return false;
-      if (to && Date.parse(expense.expenseDate) > to) return false;
-      return true;
-    });
-    return { data };
+    const rows = await prisma.expense.findMany({ where });
+    return { data: rows.map(stripNulls) };
   });
 
   app.patch('/expenses/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const expense = db.expenses.get(id);
-    if (!expense) return reply.code(404).send({ error: 'Not found' });
+
+    const existing = await prisma.expense.findFirst({ where: { id, project: { companyId } } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -219,28 +231,31 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...expense, ...body };
-    db.expenses.set(id, updated);
-    return { data: updated };
+    const updated = await prisma.expense.update({ where: { id }, data: body });
+    return { data: stripNulls(updated as Record<string, unknown>) };
   });
 
   app.delete('/expenses/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const expense = db.expenses.get(id);
+    const expense = await prisma.expense.findFirst({ where: { id, project: { companyId } } });
     if (!expense) return reply.code(404).send({ error: 'Not found' });
-    db.expenses.delete(id);
+    await prisma.expense.delete({ where: { id } });
     reply.code(204).send();
   });
 
-  app.get('/categories', { preHandler: requireAuth }, async () => ({
-    data: Array.from(db.categories.values()),
-  }));
+  app.get('/categories', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
+    return { data: await prisma.category.findMany({ where: { companyId } }) };
+  });
 
-  app.get('/vendors', { preHandler: requireAuth }, async () => ({
-    data: Array.from(db.vendors.values()),
-  }));
+  app.get('/vendors', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
+    return { data: await prisma.vendor.findMany({ where: { companyId } }) };
+  });
 
   app.post('/vendors', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const body = z
       .object({
         name: z.string().min(1),
@@ -253,15 +268,16 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `vendor_${Date.now()}`;
-    const vendor = { id, ...body };
-    db.vendors.set(id, vendor);
-    reply.code(201).send({ data: vendor });
+    const vendor = await prisma.vendor.create({ data: { id, companyId, ...body } });
+    reply.code(201).send({ data: stripNulls(vendor as Record<string, unknown>) });
   });
 
   app.patch('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const vendor = db.vendors.get(id);
-    if (!vendor) return reply.code(404).send({ error: 'Not found' });
+
+    const existing = await prisma.vendor.findFirst({ where: { id, companyId } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -274,49 +290,65 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...vendor, ...body };
-    db.vendors.set(id, updated);
-    return { data: updated };
+    const updated = await prisma.vendor.update({ where: { id }, data: body });
+    return { data: stripNulls(updated as Record<string, unknown>) };
   });
 
   app.delete('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const vendor = db.vendors.get(id);
+    const vendor = await prisma.vendor.findFirst({ where: { id, companyId } });
     if (!vendor) return reply.code(404).send({ error: 'Not found' });
-    db.vendors.delete(id);
+    await prisma.quote.deleteMany({ where: { vendorId: id } });
+    await prisma.expense.deleteMany({ where: { vendorId: id } });
+    await prisma.vendor.delete({ where: { id } });
     reply.code(204).send();
   });
 
   app.get('/vendors/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const vendor = db.vendors.get(id);
+    const vendor = await prisma.vendor.findFirst({ where: { id, companyId } });
     if (!vendor) return reply.code(404).send({ error: 'Not found' });
 
-    const vendorExpenses = Array.from(db.expenses.values()).filter((e) => e.vendorId === id);
-    const totalSpend = vendorExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const expenseCount = vendorExpenses.length;
+    const agg = await prisma.expense.aggregate({
+      where: { vendorId: id },
+      _sum: { amount: true },
+      _count: { id: true },
+    });
 
-    return { data: { ...vendor, totalSpend, expenseCount } };
+    return {
+      data: {
+        ...stripNulls(vendor as Record<string, unknown>),
+        totalSpend: agg._sum.amount ?? 0,
+        expenseCount: agg._count.id,
+      },
+    };
   });
 
   // Budget Line Items
   app.get('/budget-line-items', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const query = (req.query as { projectId?: string }) ?? {};
-    const data = Array.from(db.budgetLineItems.values()).filter((item) => {
-      if (query.projectId && item.projectId !== query.projectId) return false;
-      return true;
-    });
-    return { data };
+    const where: Record<string, unknown> = { project: { companyId } };
+    if (query.projectId) where.projectId = query.projectId;
+    const rows = await prisma.budgetLineItem.findMany({ where });
+    return { data: rows.map(stripNulls) };
   });
 
   app.get('/projects/:id/budget-line-items', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const data = Array.from(db.budgetLineItems.values()).filter((item) => item.projectId === id);
-    return { data };
+    const rows = await prisma.budgetLineItem.findMany({ where: { projectId: id, project: { companyId } } });
+    return { data: rows.map(stripNulls) };
   });
 
   app.post('/projects/:id/budget-line-items', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const projectId = (req.params as { id: string }).id;
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project || project.companyId !== companyId) return reply.code(404).send({ error: 'Not found' });
+
     const body = z
       .object({
         categoryId: z.string().min(1),
@@ -327,15 +359,16 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `bli_${randomUUID()}`;
-    const lineItem = { id, projectId, ...body };
-    db.budgetLineItems.set(id, lineItem);
-    reply.code(201).send({ data: lineItem });
+    const lineItem = await prisma.budgetLineItem.create({ data: { id, projectId, ...body } });
+    reply.code(201).send({ data: stripNulls(lineItem as Record<string, unknown>) });
   });
 
   app.patch('/budget-line-items/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const lineItem = db.budgetLineItems.get(id);
-    if (!lineItem) return reply.code(404).send({ error: 'Not found' });
+
+    const existing = await prisma.budgetLineItem.findFirst({ where: { id, project: { companyId } } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -346,32 +379,31 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...lineItem, ...body };
-    db.budgetLineItems.set(id, updated);
-    return { data: updated };
+    const updated = await prisma.budgetLineItem.update({ where: { id }, data: body });
+    return { data: stripNulls(updated as Record<string, unknown>) };
   });
 
   app.delete('/budget-line-items/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const lineItem = db.budgetLineItems.get(id);
+    const lineItem = await prisma.budgetLineItem.findFirst({ where: { id, project: { companyId } } });
     if (!lineItem) return reply.code(404).send({ error: 'Not found' });
-    db.budgetLineItems.delete(id);
-    for (const [qid, q] of db.quotes) {
-      if (q.lineItemId === id) db.quotes.delete(qid);
-    }
+    await prisma.budgetLineItem.delete({ where: { id } });
     reply.code(204).send();
   });
 
   // Quotes
   app.get('/projects/:id/quotes', { preHandler: requireAuth }, async (req) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const data = Array.from(db.quotes.values()).filter((q) => q.projectId === id);
-    return { data };
+    const rows = await prisma.quote.findMany({ where: { projectId: id, project: { companyId } } });
+    return { data: rows.map(stripNulls) };
   });
 
   app.post('/budget-line-items/:id/quotes', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const lineItemId = (req.params as { id: string }).id;
-    const lineItem = db.budgetLineItems.get(lineItemId);
+    const lineItem = await prisma.budgetLineItem.findFirst({ where: { id: lineItemId, project: { companyId } } });
     if (!lineItem) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
@@ -385,15 +417,17 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       .parse(req.body);
 
     const id = `quote_${randomUUID()}`;
-    const quote = { id, lineItemId, projectId: lineItem.projectId, status: 'pending' as const, ...body };
-    db.quotes.set(id, quote);
-    reply.code(201).send({ data: quote });
+    const quote = await prisma.quote.create({
+      data: { id, lineItemId, projectId: lineItem.projectId, status: 'pending', ...body },
+    });
+    reply.code(201).send({ data: stripNulls(quote as Record<string, unknown>) });
   });
 
   app.patch('/quotes/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const quote = db.quotes.get(id);
-    if (!quote) return reply.code(404).send({ error: 'Not found' });
+    const existing = await prisma.quote.findFirst({ where: { id, project: { companyId } } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
 
     const body = z
       .object({
@@ -406,24 +440,24 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
       })
       .parse(req.body);
 
-    const updated = { ...quote, ...body };
-    db.quotes.set(id, updated);
+    const updated = await prisma.quote.update({ where: { id }, data: body });
 
     if (body.status === 'awarded') {
-      for (const [qid, q] of db.quotes) {
-        if (q.lineItemId === quote.lineItemId && qid !== id) {
-          db.quotes.set(qid, { ...q, status: 'rejected' });
-        }
-      }
+      await prisma.quote.updateMany({
+        where: { lineItemId: existing.lineItemId, id: { not: id } },
+        data: { status: 'rejected' },
+      });
     }
 
-    return { data: updated };
+    return { data: stripNulls(updated as Record<string, unknown>) };
   });
+
   app.delete('/quotes/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
-    const quote = db.quotes.get(id);
+    const quote = await prisma.quote.findFirst({ where: { id, project: { companyId } } });
     if (!quote) return reply.code(404).send({ error: 'Not found' });
-    db.quotes.delete(id);
+    await prisma.quote.delete({ where: { id } });
     reply.code(204).send();
   });
 };
