@@ -1192,7 +1192,15 @@ const AppShell = () => {
                   createOpen={taskCreateOpen || Boolean(editingTaskId)}
                   submitAttempted={taskSubmitAttempted}
                   editingTaskId={editingTaskId}
-                  onFilterChange={setTaskFilters}
+                  onFilterChange={(next) => {
+                    setTaskFilters(next);
+                    const params = new URLSearchParams();
+                    if (next.projectId) params.set('projectId', next.projectId);
+                    if (next.status) params.set('status', next.status);
+                    if (next.fromDate) params.set('fromDate', next.fromDate);
+                    if (next.toDate) params.set('toDate', next.toDate);
+                    navigate({ pathname: '/tasks', search: params.size ? `?${params.toString()}` : '' }, { replace: true });
+                  }}
                   onFormChange={setTaskForm}
                   onCreateTask={() => {
                     setTaskCreateOpen(true);

@@ -8,9 +8,9 @@ const signupPayload = {
   password: 'securepass1',
 };
 
-beforeEach(() => {
-  resetDb();
-  seed();
+beforeEach(async () => {
+  await resetDb();
+  await seed();
 });
 
 describe('Company API', () => {

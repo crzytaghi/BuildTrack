@@ -2,24 +2,18 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { resetDb, seed } from '../src/store.js';
 
-const signupPayload = {
-  name: 'Alex Builder',
-  email: 'alex@buildtrack.com',
-  password: 'securepass1',
-};
-
 const getToken = async (app: Awaited<ReturnType<typeof buildApp>>) => {
   const res = await app.inject({
     method: 'POST',
-    url: '/api/v1/auth/signup',
-    payload: signupPayload,
+    url: '/api/v1/auth/login',
+    payload: { email: 'seed@buildtrack.dev', password: 'securepass1' },
   });
   return res.json().token as string;
 };
 
-beforeEach(() => {
-  resetDb();
-  seed();
+beforeEach(async () => {
+  await resetDb();
+  await seed();
 });
 
 describe('Vendors API', () => {
