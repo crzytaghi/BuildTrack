@@ -327,7 +327,6 @@ const AppShell = () => {
     const loadLineItems = async () => {
       setLineItemsLoading(true);
       setLineItemsError(null);
-      setQuotes([]);
       try {
         const res = await fetch(`${API_BASE}/budget-line-items`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -345,7 +344,9 @@ const AppShell = () => {
   }, [location.pathname, token, user]);
 
   useEffect(() => {
-    if (!token || !user || location.pathname !== '/budget' || !budgetProjectFilter) return;
+    if (!token || !user || location.pathname !== '/budget') return;
+    setQuotes([]);
+    if (!budgetProjectFilter) return;
     const loadQuotes = async () => {
       try {
         const res = await fetch(`${API_BASE}/projects/${budgetProjectFilter}/quotes`, {
