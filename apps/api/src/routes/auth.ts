@@ -31,6 +31,23 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       data: { name: `${body.name}'s Company`, companySetupComplete: false },
     });
 
+    await prisma.category.createMany({
+      data: [
+        { id: `cat_${company.id}_1`,  companyId: company.id, name: 'Materials' },
+        { id: `cat_${company.id}_2`,  companyId: company.id, name: 'Labor' },
+        { id: `cat_${company.id}_3`,  companyId: company.id, name: 'Subcontractors' },
+        { id: `cat_${company.id}_4`,  companyId: company.id, name: 'Equipment' },
+        { id: `cat_${company.id}_5`,  companyId: company.id, name: 'Permits & Fees' },
+        { id: `cat_${company.id}_6`,  companyId: company.id, name: 'Design & Engineering' },
+        { id: `cat_${company.id}_7`,  companyId: company.id, name: 'Site Work' },
+        { id: `cat_${company.id}_8`,  companyId: company.id, name: 'Safety' },
+        { id: `cat_${company.id}_9`,  companyId: company.id, name: 'Insurance & Bonds' },
+        { id: `cat_${company.id}_10`, companyId: company.id, name: 'General Conditions' },
+        { id: `cat_${company.id}_11`, companyId: company.id, name: 'Contingency' },
+        { id: `cat_${company.id}_12`, companyId: company.id, name: 'Other' },
+      ],
+    });
+
     const salt = crypto.randomBytes(16).toString('hex');
     const passwordHash = hashPassword(body.password, salt);
     const user: User = {
