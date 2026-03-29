@@ -112,10 +112,6 @@ const BudgetView = ({
     .filter((e) => e.lineItemId && (!selectedProjectId || e.projectId === selectedProjectId))
     .reduce((sum, e) => sum + e.amount, 0);
 
-  const selectedLineItem = lineItems.find((li) => li.id === selectedLineItemId) ?? null;
-  const lineItemQuotes = selectedLineItemId
-    ? quotes.filter((q) => q.lineItemId === selectedLineItemId)
-    : [];
 
   const errorClass = 'ring-1 ring-red-500/60 border border-red-500/60';
 
@@ -257,65 +253,239 @@ const BudgetView = ({
             {loading ? (
               <div className="text-sm text-slate-400">Loading...</div>
             ) : (
-              <div className="divide-y divide-slate-800 text-sm">
+              <div className="text-sm">
                 {filteredLineItems.length === 0 ? (
                   <div className="text-slate-400">No line items found.</div>
                 ) : (
                   filteredLineItems.map((item) => {
                     const categoryName = categories.find((c) => c.id === item.categoryId)?.name ?? item.categoryId;
-                    const quoteCount = quotes.filter((q) => q.lineItemId === item.id).length;
+                    const itemQuotes = quotes.filter((q) => q.lineItemId === item.id);
                     const isSelected = selectedLineItemId === item.id;
                     return (
-                      <div key={item.id} className="flex items-center justify-between py-3">
-                        <div>
-                          <div className="font-medium text-slate-100">{item.description}</div>
-                          <div className="text-xs text-slate-400">
-                            {categoryName} • {fmt.format(item.budgetedAmount)}
+                      <div key={item.id} className="border-b border-slate-800 last:border-0">
+                        {/* Row */}
+                        <div className="flex items-center justify-between py-3">
+                          <div>
+                            <div className="font-medium text-slate-100">{item.description}</div>
+                            <div className="text-xs text-slate-400">
+                              {categoryName} • {fmt.format(item.budgetedAmount)}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                isSelected
+                                  ? 'bg-accent text-slate-950'
+                                  : 'border border-slate-700 text-slate-200'
+                              }`}
+                              onClick={() => onSelectLineItem(isSelected ? null : item.id)}
+                            >
+                              {itemQuotes.length} Quotes
+                            </button>
+                            {deletingLineItemId === item.id ? (
+                              <>
+                                <button
+                                  className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                  onClick={() => onDeleteLineItem(item.id)}
+                                >
+                                  Confirm delete
+                                </button>
+                                <button
+                                  className="text-xs text-slate-400"
+                                  onClick={() => onRequestDeleteLineItem(null)}
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                  onClick={() => onEditLineItem(item)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                  onClick={() => onRequestDeleteLineItem(item.id)}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              isSelected
-                                ? 'bg-accent text-slate-950'
-                                : 'border border-slate-700 text-slate-200'
-                            }`}
-                            onClick={() => onSelectLineItem(isSelected ? null : item.id)}
-                          >
-                            {quoteCount} Quotes
-                          </button>
-                          {deletingLineItemId === item.id ? (
-                            <>
-                              <button
-                                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                                onClick={() => onDeleteLineItem(item.id)}
-                              >
-                                Confirm delete
-                              </button>
-                              <button
-                                className="text-xs text-slate-400"
-                                onClick={() => onRequestDeleteLineItem(null)}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                                onClick={() => onEditLineItem(item)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                                onClick={() => onRequestDeleteLineItem(item.id)}
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
-                        </div>
+
+                        {/* Inline quotes expansion */}
+                        {isSelected && (
+                          <div className="mb-4 rounded-2xl border border-slate-700 bg-surface/40 p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Quotes
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {!quoteCreateOpen && (
+                                  <button
+                                    className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-950"
+                                    onClick={onCreateQuote}
+                                  >
+                                    Add Quote
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Quote form */}
+                            {quoteCreateOpen && (
+                              <div className="mt-3 rounded-2xl border border-slate-800 bg-surface/60 p-4">
+                                <div className="flex items-center justify-between">
+                                  <div className="text-sm font-semibold text-slate-200">
+                                    {editingQuoteId ? 'Edit Quote' : 'New Quote'}
+                                  </div>
+                                  <button
+                                    className="text-xs uppercase tracking-wide text-slate-400"
+                                    onClick={onQuoteCancelEdit}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                  <select
+                                    value={quoteForm.vendorId}
+                                    onChange={(e) => onQuoteFormChange({ ...quoteForm, vendorId: e.target.value })}
+                                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.vendorId ? errorClass : ''}`}
+                                  >
+                                    <option value="">Select vendor</option>
+                                    {vendors.map((v) => (
+                                      <option key={v.id} value={v.id}>{v.name}</option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    type="number"
+                                    value={quoteForm.amount}
+                                    onChange={(e) => onQuoteFormChange({ ...quoteForm, amount: e.target.value })}
+                                    placeholder="Amount ($)"
+                                    min="0"
+                                    step="1"
+                                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.amount ? errorClass : ''}`}
+                                  />
+                                  <input
+                                    value={quoteForm.description}
+                                    onChange={(e) => onQuoteFormChange({ ...quoteForm, description: e.target.value })}
+                                    placeholder="Description (optional)"
+                                    className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
+                                  />
+                                  <div>
+                                    <label className="mb-1 block text-xs text-slate-400">Submitted At</label>
+                                    <input
+                                      type="date"
+                                      value={quoteForm.submittedAt}
+                                      onChange={(e) => onQuoteFormChange({ ...quoteForm, submittedAt: e.target.value })}
+                                      className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.submittedAt ? errorClass : ''}`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-xs text-slate-400">Expires At (optional)</label>
+                                    <input
+                                      type="date"
+                                      value={quoteForm.expiresAt}
+                                      onChange={(e) => onQuoteFormChange({ ...quoteForm, expiresAt: e.target.value })}
+                                      className="w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
+                                    />
+                                  </div>
+                                </div>
+                                <button
+                                  className="mt-4 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                                  onClick={onQuoteSubmit}
+                                >
+                                  {editingQuoteId ? 'Update Quote' : 'Add Quote'}
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Quotes list */}
+                            <div className="mt-3 divide-y divide-slate-800">
+                              {itemQuotes.length === 0 ? (
+                                <div className="py-2 text-xs text-slate-500">No quotes yet.</div>
+                              ) : (
+                                itemQuotes.map((quote) => {
+                                  const vendorName = vendors.find((v) => v.id === quote.vendorId)?.name ?? quote.vendorId;
+                                  const statusColors = {
+                                    awarded: 'bg-emerald-500/20 text-emerald-300',
+                                    rejected: 'bg-red-500/20 text-red-300',
+                                    pending: 'bg-slate-500/20 text-slate-300',
+                                  };
+                                  const isExpanded = expandedQuoteId === quote.id;
+                                  return (
+                                    <div key={quote.id} className="py-3">
+                                      <div
+                                        className="flex cursor-pointer items-center justify-between"
+                                        onClick={() => setExpandedQuoteId(isExpanded ? null : quote.id)}
+                                      >
+                                        <div>
+                                          <div className="font-medium text-slate-100">{vendorName}</div>
+                                          <div className="text-xs text-slate-400">{quote.submittedAt}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-sm font-semibold text-slate-100">{fmt.format(quote.amount)}</div>
+                                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[quote.status]}`}>
+                                            {quote.status}
+                                          </span>
+                                          {quote.status !== 'awarded' && (
+                                            <button
+                                              className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-950"
+                                              onClick={(e) => { e.stopPropagation(); onAwardQuote(quote.id); }}
+                                            >
+                                              Award
+                                            </button>
+                                          )}
+                                          {quote.status === 'pending' && (
+                                            <button
+                                              className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                              onClick={(e) => { e.stopPropagation(); onEditQuote(quote); }}
+                                            >
+                                              Edit
+                                            </button>
+                                          )}
+                                          {deletingQuoteId === quote.id ? (
+                                            <>
+                                              <button
+                                                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                                onClick={(e) => { e.stopPropagation(); onDeleteQuote(quote.id); }}
+                                              >
+                                                Confirm delete
+                                              </button>
+                                              <button
+                                                className="text-xs text-slate-400"
+                                                onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(null); }}
+                                              >
+                                                Cancel
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <button
+                                              className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                              onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(quote.id); }}
+                                            >
+                                              Delete
+                                            </button>
+                                          )}
+                                          <span className="text-xs text-slate-500">{isExpanded ? '▲' : '▼'}</span>
+                                        </div>
+                                      </div>
+                                      {isExpanded && (
+                                        <div className="mt-2 rounded-xl bg-surface/60 px-4 py-3 text-xs text-slate-300">
+                                          <span className="font-semibold text-slate-400">Description: </span>
+                                          {quote.description ?? 'None'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -325,187 +495,6 @@ const BudgetView = ({
           </div>
         </div>
       </section>
-
-      {/* Quotes panel */}
-      {selectedLineItemId && selectedLineItem && (
-        <section className="px-4 pb-8 sm:px-6 lg:px-8">
-          <div className="rounded-2xl bg-panel p-6 shadow-lg">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-200">
-                  Quotes for: {selectedLineItem.description}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {!quoteCreateOpen && (
-                  <button
-                    className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
-                    onClick={onCreateQuote}
-                  >
-                    Add Quote
-                  </button>
-                )}
-                <button
-                  className="rounded-full border border-slate-700 px-3 py-2 text-xs text-slate-200"
-                  onClick={() => onSelectLineItem(null)}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-
-            {quoteCreateOpen && (
-              <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-slate-200">
-                    {editingQuoteId ? 'Edit Quote' : 'New Quote'}
-                  </div>
-                  <button
-                    className="text-xs uppercase tracking-wide text-slate-400"
-                    onClick={onQuoteCancelEdit}
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                  <select
-                    value={quoteForm.vendorId}
-                    onChange={(e) => onQuoteFormChange({ ...quoteForm, vendorId: e.target.value })}
-                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.vendorId ? errorClass : ''}`}
-                  >
-                    <option value="">Select vendor</option>
-                    {vendors.map((v) => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    value={quoteForm.amount}
-                    onChange={(e) => onQuoteFormChange({ ...quoteForm, amount: e.target.value })}
-                    placeholder="Amount ($)"
-                    min="0"
-                    step="1"
-                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.amount ? errorClass : ''}`}
-                  />
-                  <input
-                    value={quoteForm.description}
-                    onChange={(e) => onQuoteFormChange({ ...quoteForm, description: e.target.value })}
-                    placeholder="Description (optional)"
-                    className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
-                  />
-                  <div>
-                    <label className="mb-1 block text-xs text-slate-400">Submitted At</label>
-                    <input
-                      type="date"
-                      value={quoteForm.submittedAt}
-                      onChange={(e) => onQuoteFormChange({ ...quoteForm, submittedAt: e.target.value })}
-                      className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${quoteSubmitAttempted && !quoteForm.submittedAt ? errorClass : ''}`}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-slate-400">Expires At (optional)</label>
-                    <input
-                      type="date"
-                      value={quoteForm.expiresAt}
-                      onChange={(e) => onQuoteFormChange({ ...quoteForm, expiresAt: e.target.value })}
-                      className="w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
-                    />
-                  </div>
-                </div>
-                <button
-                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  onClick={onQuoteSubmit}
-                >
-                  {editingQuoteId ? 'Update Quote' : 'Add Quote'}
-                </button>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <div className="divide-y divide-slate-800 text-sm">
-                {lineItemQuotes.length === 0 ? (
-                  <div className="text-slate-400">No quotes for this line item.</div>
-                ) : (
-                  lineItemQuotes.map((quote) => {
-                    const vendorName = vendors.find((v) => v.id === quote.vendorId)?.name ?? quote.vendorId;
-                    const statusColors = {
-                      awarded: 'bg-emerald-500/20 text-emerald-300',
-                      rejected: 'bg-red-500/20 text-red-300',
-                      pending: 'bg-slate-500/20 text-slate-300',
-                    };
-                    const isExpanded = expandedQuoteId === quote.id;
-                    return (
-                      <div key={quote.id} className="py-3">
-                        <div
-                          className="flex cursor-pointer items-center justify-between"
-                          onClick={() => setExpandedQuoteId(isExpanded ? null : quote.id)}
-                        >
-                          <div>
-                            <div className="font-medium text-slate-100">{vendorName}</div>
-                            <div className="text-xs text-slate-400">{quote.submittedAt}</div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-semibold text-slate-100">{fmt.format(quote.amount)}</div>
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[quote.status]}`}>
-                              {quote.status}
-                            </span>
-                            {quote.status !== 'awarded' && (
-                              <button
-                                className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-slate-950"
-                                onClick={(e) => { e.stopPropagation(); onAwardQuote(quote.id); }}
-                              >
-                                Award
-                              </button>
-                            )}
-                            {quote.status === 'pending' && (
-                              <button
-                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                                onClick={(e) => { e.stopPropagation(); onEditQuote(quote); }}
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {deletingQuoteId === quote.id ? (
-                              <>
-                                <button
-                                  className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                                  onClick={(e) => { e.stopPropagation(); onDeleteQuote(quote.id); }}
-                                >
-                                  Confirm delete
-                                </button>
-                                <button
-                                  className="text-xs text-slate-400"
-                                  onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(null); }}
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                                onClick={(e) => { e.stopPropagation(); onRequestDeleteQuote(quote.id); }}
-                              >
-                                Delete
-                              </button>
-                            )}
-                            <span className="text-xs text-slate-500">{isExpanded ? '▲' : '▼'}</span>
-                          </div>
-                        </div>
-                        {isExpanded && (
-                          <div className="mt-2 rounded-xl bg-surface/60 px-4 py-3 text-xs text-slate-300">
-                            <span className="font-semibold text-slate-400">Description: </span>
-                            {quote.description ?? 'None'}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
     </>
   );
 };
