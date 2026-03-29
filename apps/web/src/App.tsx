@@ -18,9 +18,8 @@ import ProjectDetailView from './components/ProjectDetailView';
 import TasksView from './components/TasksView';
 import ExpensesView from './components/ExpensesView';
 import VendorsView from './components/VendorsView';
-import BudgetView from './components/BudgetView';
 import { getApiBase } from './lib/api';
-import type { BudgetLineItem, BudgetLineItemFormState, Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, QuoteFormState, QuoteItem, TaskItem, VendorFormState, VendorItem } from './types/projects';
+import type { BudgetLineItem, Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, TaskItem, VendorFormState, VendorItem } from './types/projects';
 
 type User = { id: string; email: string; name: string };
 
@@ -32,7 +31,6 @@ const nav = [
   'Dashboard',
   'Projects',
   'Tasks',
-  'Budget',
   'Expenses',
   'Vendors',
   'Documents',
@@ -126,24 +124,9 @@ const AppShell = () => {
   const [vendorCreateOpen, setVendorCreateOpen] = useState(false);
   const [vendorSubmitAttempted, setVendorSubmitAttempted] = useState(false);
   const [lineItems, setLineItems] = useState<BudgetLineItem[]>([]);
-  const [lineItemsLoading, setLineItemsLoading] = useState(false);
-  const [lineItemsError, setLineItemsError] = useState<string | null>(null);
-  const [lineItemForm, setLineItemForm] = useState<BudgetLineItemFormState>({ projectId: '', categoryId: '', description: '', budgetedAmount: '', notes: '' });
-  const [editingLineItemId, setEditingLineItemId] = useState<string | null>(null);
-  const [lineItemCreateOpen, setLineItemCreateOpen] = useState(false);
-  const [lineItemSubmitAttempted, setLineItemSubmitAttempted] = useState(false);
-  const [quotes, setQuotes] = useState<QuoteItem[]>([]);
-  const [selectedLineItemId, setSelectedLineItemId] = useState<string | null>(null);
-  const [quoteForm, setQuoteForm] = useState<QuoteFormState>({ vendorId: '', amount: '', description: '', expiresAt: '', submittedAt: '' });
-  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
-  const [quoteCreateOpen, setQuoteCreateOpen] = useState(false);
-  const [quoteSubmitAttempted, setQuoteSubmitAttempted] = useState(false);
-  const [budgetProjectFilter, setBudgetProjectFilter] = useState('');
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   const [deletingVendorId, setDeletingVendorId] = useState<string | null>(null);
-  const [deletingLineItemId, setDeletingLineItemId] = useState<string | null>(null);
-  const [deletingQuoteId, setDeletingQuoteId] = useState<string | null>(null);
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -187,7 +170,7 @@ const AppShell = () => {
   }, []);
 
   useEffect(() => {
-    if (!token || !user || (location.pathname !== '/' && location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses' && location.pathname !== '/vendors' && location.pathname !== '/budget')) return;
+    if (!token || !user || (location.pathname !== '/' && location.pathname !== '/projects' && location.pathname !== '/tasks' && location.pathname !== '/expenses' && location.pathname !== '/vendors')) return;
     const load = async () => {
       if (location.pathname === '/projects') {
         setProjectsLoading(true);
@@ -314,53 +297,6 @@ const AppShell = () => {
     };
     loadVendors();
   }, [location.pathname, token, user]);
-
-  useEffect(() => {
-    if (!token || !user || location.pathname !== '/budget') return;
-    if (location.search) {
-      const params = new URLSearchParams(location.search);
-      const projectId = params.get('projectId') ?? '';
-      if (projectId && projectId !== budgetProjectFilter) {
-        setBudgetProjectFilter(projectId);
-      }
-    }
-    const loadLineItems = async () => {
-      setLineItemsLoading(true);
-      setLineItemsError(null);
-      try {
-        const res = await fetch(`${API_BASE}/budget-line-items`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Unable to load budget line items');
-        const data = (await res.json()) as { data: BudgetLineItem[] };
-        setLineItems(data.data);
-      } catch (err) {
-        setLineItemsError(err instanceof Error ? err.message : 'Unable to load budget line items');
-      } finally {
-        setLineItemsLoading(false);
-      }
-    };
-    loadLineItems();
-  }, [location.pathname, token, user]);
-
-  useEffect(() => {
-    if (!token || !user || location.pathname !== '/budget') return;
-    setQuotes([]);
-    if (!budgetProjectFilter) return;
-    const loadQuotes = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/projects/${budgetProjectFilter}/quotes`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as { data: QuoteItem[] };
-        setQuotes(data.data);
-      } catch {
-        // silently fail
-      }
-    };
-    loadQuotes();
-  }, [budgetProjectFilter, location.pathname, token, user]);
 
   useEffect(() => {
     if (!token || !user || categories.length > 0) return;
@@ -686,133 +622,6 @@ const AppShell = () => {
     });
   };
 
-  const resetLineItemForm = () => {
-    setLineItemForm({ projectId: budgetProjectFilter, categoryId: '', description: '', budgetedAmount: '', notes: '' });
-    setEditingLineItemId(null);
-    setLineItemSubmitAttempted(false);
-  };
-  const closeLineItemForm = () => {
-    resetLineItemForm();
-    setLineItemCreateOpen(false);
-  };
-
-  const handleLineItemSubmit = async () => {
-    if (!token) return;
-    setLineItemSubmitAttempted(true);
-    setLineItemsError(null);
-    const projectId = editingLineItemId
-      ? lineItems.find((li) => li.id === editingLineItemId)?.projectId ?? lineItemForm.projectId
-      : lineItemForm.projectId;
-    if (!projectId) { setLineItemsError('Project is required'); return; }
-    if (!lineItemForm.categoryId) { setLineItemsError('Category is required'); return; }
-    if (!lineItemForm.description.trim()) { setLineItemsError('Description is required'); return; }
-    if (!lineItemForm.budgetedAmount || Number(lineItemForm.budgetedAmount) <= 0) { setLineItemsError('A valid budgeted amount is required'); return; }
-
-    const method = editingLineItemId ? 'PATCH' : 'POST';
-    const url = editingLineItemId
-      ? `${API_BASE}/budget-line-items/${editingLineItemId}`
-      : `${API_BASE}/projects/${projectId}/budget-line-items`;
-    const res = await fetch(url, {
-      method,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        categoryId: lineItemForm.categoryId,
-        description: lineItemForm.description.trim(),
-        budgetedAmount: Number(lineItemForm.budgetedAmount),
-        notes: lineItemForm.notes || undefined,
-      }),
-    });
-    if (!res.ok) { setLineItemsError('Unable to save line item'); return; }
-    const data = (await res.json()) as { data: BudgetLineItem };
-    setLineItems((prev) => {
-      if (editingLineItemId) return prev.map((item) => (item.id === data.data.id ? data.data : item));
-      return [data.data, ...prev];
-    });
-    closeLineItemForm();
-  };
-
-  const selectLineItemForEdit = (item: BudgetLineItem) => {
-    setLineItemCreateOpen(true);
-    setEditingLineItemId(item.id);
-    setLineItemForm({
-      projectId: item.projectId,
-      categoryId: item.categoryId,
-      description: item.description,
-      budgetedAmount: String(item.budgetedAmount),
-      notes: item.notes ?? '',
-    });
-  };
-
-  const resetQuoteForm = () => {
-    setQuoteForm({ vendorId: '', amount: '', description: '', expiresAt: '', submittedAt: '' });
-    setEditingQuoteId(null);
-    setQuoteSubmitAttempted(false);
-  };
-  const closeQuoteForm = () => {
-    resetQuoteForm();
-    setQuoteCreateOpen(false);
-  };
-
-  const handleQuoteSubmit = async () => {
-    if (!token) return;
-    setQuoteSubmitAttempted(true);
-    if (!quoteForm.vendorId) return;
-    if (!quoteForm.amount || Number(quoteForm.amount) <= 0) return;
-    if (!quoteForm.submittedAt) return;
-
-    const method = editingQuoteId ? 'PATCH' : 'POST';
-    const url = editingQuoteId
-      ? `${API_BASE}/quotes/${editingQuoteId}`
-      : `${API_BASE}/budget-line-items/${selectedLineItemId}/quotes`;
-    const res = await fetch(url, {
-      method,
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vendorId: quoteForm.vendorId,
-        amount: Number(quoteForm.amount),
-        submittedAt: quoteForm.submittedAt,
-        description: quoteForm.description || undefined,
-        expiresAt: quoteForm.expiresAt || undefined,
-      }),
-    });
-    if (!res.ok) return;
-    const data = (await res.json()) as { data: QuoteItem };
-    setQuotes((prev) => {
-      if (editingQuoteId) return prev.map((q) => (q.id === data.data.id ? data.data : q));
-      return [data.data, ...prev];
-    });
-    closeQuoteForm();
-  };
-
-  const selectQuoteForEdit = (quote: QuoteItem) => {
-    setQuoteCreateOpen(true);
-    setEditingQuoteId(quote.id);
-    setQuoteForm({
-      vendorId: quote.vendorId,
-      amount: String(quote.amount),
-      description: quote.description ?? '',
-      expiresAt: quote.expiresAt ?? '',
-      submittedAt: quote.submittedAt,
-    });
-  };
-
-  const handleAwardQuote = async (quoteId: string) => {
-    if (!token || !budgetProjectFilter) return;
-    const res = await fetch(`${API_BASE}/quotes/${quoteId}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'awarded' }),
-    });
-    if (!res.ok) return;
-    const refreshRes = await fetch(`${API_BASE}/projects/${budgetProjectFilter}/quotes`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (refreshRes.ok) {
-      const data = (await refreshRes.json()) as { data: QuoteItem[] };
-      setQuotes(data.data);
-    }
-  };
-
   const handleTaskDelete = async (id: string) => {
     if (!token) return;
     await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
@@ -832,22 +641,6 @@ const AppShell = () => {
     await fetch(`${API_BASE}/vendors/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     setVendors((prev) => prev.filter((v) => v.id !== id));
     setDeletingVendorId(null);
-  };
-
-  const handleLineItemDelete = async (id: string) => {
-    if (!token) return;
-    await fetch(`${API_BASE}/budget-line-items/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    setLineItems((prev) => prev.filter((li) => li.id !== id));
-    setQuotes((prev) => prev.filter((q) => q.lineItemId !== id));
-    if (selectedLineItemId === id) setSelectedLineItemId(null);
-    setDeletingLineItemId(null);
-  };
-
-  const handleQuoteDelete = async (id: string) => {
-    if (!token) return;
-    await fetch(`${API_BASE}/quotes/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    setQuotes((prev) => prev.filter((q) => q.id !== id));
-    setDeletingQuoteId(null);
   };
 
   const handleProjectDelete = async (id: string) => {
@@ -1244,68 +1037,6 @@ const AppShell = () => {
                   deletingVendorId={deletingVendorId}
                   onRequestDeleteVendor={setDeletingVendorId}
                   onDeleteVendor={handleVendorDelete}
-                />
-              }
-            />
-            <Route
-              path="/budget"
-              element={
-                <BudgetView
-                  projects={projects}
-                  lineItems={lineItems}
-                  quotes={quotes}
-                  categories={categories}
-                  vendors={vendors}
-                  expenses={expenses}
-                  loading={lineItemsLoading}
-                  error={lineItemsError}
-                  selectedProjectId={budgetProjectFilter}
-                  selectedLineItemId={selectedLineItemId}
-                  lineItemForm={lineItemForm}
-                  lineItemCreateOpen={lineItemCreateOpen || Boolean(editingLineItemId)}
-                  lineItemSubmitAttempted={lineItemSubmitAttempted}
-                  editingLineItemId={editingLineItemId}
-                  quoteForm={quoteForm}
-                  quoteCreateOpen={quoteCreateOpen || Boolean(editingQuoteId)}
-                  quoteSubmitAttempted={quoteSubmitAttempted}
-                  editingQuoteId={editingQuoteId}
-                  onProjectFilterChange={(id) => {
-                    setBudgetProjectFilter(id);
-                    setSelectedLineItemId(null);
-                    closeLineItemForm();
-                    closeQuoteForm();
-                  }}
-                  onSelectLineItem={(id) => {
-                    setSelectedLineItemId(id);
-                    closeQuoteForm();
-                  }}
-                  onLineItemFormChange={setLineItemForm}
-                  onCreateLineItem={() => {
-                    setLineItemCreateOpen(true);
-                    setEditingLineItemId(null);
-                    setLineItemForm({ projectId: budgetProjectFilter, categoryId: '', description: '', budgetedAmount: '', notes: '' });
-                    setLineItemSubmitAttempted(false);
-                  }}
-                  onLineItemSubmit={handleLineItemSubmit}
-                  onLineItemCancelEdit={closeLineItemForm}
-                  onEditLineItem={selectLineItemForEdit}
-                  onQuoteFormChange={setQuoteForm}
-                  onCreateQuote={() => {
-                    setQuoteCreateOpen(true);
-                    setEditingQuoteId(null);
-                    setQuoteForm({ vendorId: '', amount: '', description: '', expiresAt: '', submittedAt: '' });
-                    setQuoteSubmitAttempted(false);
-                  }}
-                  onQuoteSubmit={handleQuoteSubmit}
-                  onQuoteCancelEdit={closeQuoteForm}
-                  onAwardQuote={handleAwardQuote}
-                  onEditQuote={selectQuoteForEdit}
-                  deletingLineItemId={deletingLineItemId}
-                  onRequestDeleteLineItem={setDeletingLineItemId}
-                  onDeleteLineItem={handleLineItemDelete}
-                  deletingQuoteId={deletingQuoteId}
-                  onRequestDeleteQuote={setDeletingQuoteId}
-                  onDeleteQuote={handleQuoteDelete}
                 />
               }
             />
