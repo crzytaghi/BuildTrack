@@ -67,7 +67,23 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   });
 
   // — tabs —
-  const [activeTab, setActiveTab] = useState<'overview' | 'budget'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses'>('overview');
+
+  // — tasks (project-scoped) —
+  const [taskCreateOpen, setTaskCreateOpen] = useState(false);
+  const [taskSubmitAttempted, setTaskSubmitAttempted] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [taskForm, setTaskForm] = useState<{ title: string; status: TaskItem['status'] | ''; dueDate: string }>({ title: '', status: '', dueDate: '' });
+  const [taskError, setTaskError] = useState<string | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
+  // — expenses (project-scoped) —
+  const [expenseCreateOpen, setExpenseCreateOpen] = useState(false);
+  const [expenseSubmitAttempted, setExpenseSubmitAttempted] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [expenseForm, setExpenseForm] = useState({ vendorId: '', description: '', amount: '', categoryId: '', expenseDate: '', lineItemId: '' });
+  const [expenseError, setExpenseError] = useState<string | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 
   // — budget: line items —
   const [selectedLineItemId, setSelectedLineItemId] = useState<string | null>(null);
@@ -280,6 +296,84 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
     setDeletingQuoteId(null);
   };
 
+  // — task handlers —
+  const closeTaskForm = () => {
+    setTaskCreateOpen(false);
+    setEditingTaskId(null);
+    setTaskSubmitAttempted(false);
+    setTaskForm({ title: '', status: '', dueDate: '' });
+    setTaskError(null);
+  };
+
+  const handleTaskSubmit = async () => {
+    setTaskSubmitAttempted(true);
+    if (!taskForm.title.trim() || !taskForm.status || !taskForm.dueDate) return;
+    const method = editingTaskId ? 'PATCH' : 'POST';
+    const url = editingTaskId
+      ? `${API_BASE}/tasks/${editingTaskId}`
+      : `${API_BASE}/projects/${projectId}/tasks`;
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: taskForm.title.trim(), status: taskForm.status, dueDate: taskForm.dueDate, projectId }),
+    });
+    if (!res.ok) { setTaskError('Unable to save task'); return; }
+    const data = (await res.json()) as { data: TaskItem };
+    setTasks((prev) =>
+      editingTaskId ? prev.map((t) => (t.id === data.data.id ? data.data : t)) : [data.data, ...prev]
+    );
+    closeTaskForm();
+  };
+
+  const handleTaskDelete = async (id: string) => {
+    await fetch(`${API_BASE}/tasks/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setDeletingTaskId(null);
+  };
+
+  // — expense handlers —
+  const closeExpenseForm = () => {
+    setExpenseCreateOpen(false);
+    setEditingExpenseId(null);
+    setExpenseSubmitAttempted(false);
+    setExpenseForm({ vendorId: '', description: '', amount: '', categoryId: '', expenseDate: '', lineItemId: '' });
+    setExpenseError(null);
+  };
+
+  const handleExpenseSubmit = async () => {
+    setExpenseSubmitAttempted(true);
+    if (!expenseForm.vendorId || !expenseForm.description.trim() || !expenseForm.amount || !expenseForm.categoryId || !expenseForm.expenseDate) return;
+    const method = editingExpenseId ? 'PATCH' : 'POST';
+    const url = editingExpenseId
+      ? `${API_BASE}/expenses/${editingExpenseId}`
+      : `${API_BASE}/projects/${projectId}/expenses`;
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vendorId: expenseForm.vendorId,
+        description: expenseForm.description.trim(),
+        amount: Number(expenseForm.amount),
+        categoryId: expenseForm.categoryId,
+        expenseDate: expenseForm.expenseDate,
+        lineItemId: expenseForm.lineItemId || undefined,
+        projectId,
+      }),
+    });
+    if (!res.ok) { setExpenseError('Unable to save expense'); return; }
+    const data = (await res.json()) as { data: ExpenseItem };
+    setExpenses((prev) =>
+      editingExpenseId ? prev.map((e) => (e.id === data.data.id ? data.data : e)) : [data.data, ...prev]
+    );
+    closeExpenseForm();
+  };
+
+  const handleExpenseDelete = async (id: string) => {
+    await fetch(`${API_BASE}/expenses/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setExpenses((prev) => prev.filter((e) => e.id !== id));
+    setDeletingExpenseId(null);
+  };
+
   if (loading) {
     return <div className="px-4 py-6 text-sm text-slate-400 sm:px-6 lg:px-8">Loading project...</div>;
   }
@@ -341,7 +435,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
 
       {/* Tab bar */}
       <div className="flex border-b border-slate-800 px-4 sm:px-6 lg:px-8">
-        {(['overview', 'budget'] as const).map((tab) => (
+        {(['overview', 'budget', 'tasks', 'expenses'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -495,12 +589,12 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
             <div className="rounded-2xl bg-panel p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-200">Tasks</div>
-                <Link
-                  to={`/tasks?projectId=${project.id}`}
+                <button
                   className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                  onClick={() => setActiveTab('tasks')}
                 >
-                  View Project Tasks
-                </Link>
+                  View All Tasks
+                </button>
               </div>
               <div className="mt-4 divide-y divide-slate-800 text-sm">
                 {tasks.length === 0 ? (
@@ -525,12 +619,12 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
             <div className="rounded-2xl bg-panel p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-200">Expenses</div>
-                <Link
-                  to={`/expenses?projectId=${project.id}`}
+                <button
                   className="rounded-lg bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                  onClick={() => setActiveTab('expenses')}
                 >
-                  View Project Expenses
-                </Link>
+                  View All Expenses
+                </button>
               </div>
               <div className="mt-4 divide-y divide-slate-800 text-sm">
                 {expenses.length === 0 ? (
@@ -912,6 +1006,315 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                     </div>
                   );
                 })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tasks tab */}
+      {activeTab === 'tasks' && (
+        <div className="px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+          <div className="rounded-2xl bg-panel p-6 shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-200">Tasks</div>
+                <div className="text-xs text-slate-500">Manage tasks for this project.</div>
+              </div>
+              {!taskCreateOpen && !editingTaskId && (
+                <button
+                  className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                  onClick={() => setTaskCreateOpen(true)}
+                >
+                  Create Task
+                </button>
+              )}
+            </div>
+
+            {(taskCreateOpen || editingTaskId) && (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-slate-200">
+                    {editingTaskId ? 'Edit Task' : 'New Task'}
+                  </div>
+                  <button className="text-xs uppercase tracking-wide text-slate-400" onClick={closeTaskForm}>
+                    Cancel
+                  </button>
+                </div>
+                {taskError && (
+                  <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                    {taskError}
+                  </div>
+                )}
+                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+                  <input
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Task title"
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${taskSubmitAttempted && !taskForm.title.trim() ? errorClass : ''}`}
+                  />
+                  <select
+                    value={taskForm.status}
+                    onChange={(e) => setTaskForm((prev) => ({ ...prev, status: e.target.value as TaskItem['status'] | '' }))}
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${taskSubmitAttempted && !taskForm.status ? errorClass : ''}`}
+                  >
+                    <option value="">Select status</option>
+                    {(['todo', 'in_progress', 'blocked', 'done'] as const).map((s) => (
+                      <option key={s} value={s}>{taskStatusLabel[s]}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={taskForm.dueDate}
+                    onChange={(e) => setTaskForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${taskSubmitAttempted && !taskForm.dueDate ? errorClass : ''}`}
+                  />
+                </div>
+                <button
+                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                  onClick={handleTaskSubmit}
+                >
+                  {editingTaskId ? 'Update Task' : 'Create Task'}
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4 divide-y divide-slate-800 text-sm">
+              {tasks.length === 0 ? (
+                <div className="text-slate-400">No tasks yet.</div>
+              ) : (
+                tasks.map((task) => (
+                  <div key={task.id} className="flex items-center justify-between py-3">
+                    <div>
+                      <div className="font-medium text-slate-100">{task.title}</div>
+                      <div className="text-xs text-slate-400">
+                        {taskStatusLabel[task.status]} • {task.dueDate ?? 'No due date'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
+                        {taskStatusLabel[task.status]}
+                      </span>
+                      {deletingTaskId === task.id ? (
+                        <>
+                          <button
+                            className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                            onClick={() => handleTaskDelete(task.id)}
+                          >
+                            Confirm delete
+                          </button>
+                          <button
+                            className="text-xs text-slate-400"
+                            onClick={() => setDeletingTaskId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                            onClick={() => {
+                              setEditingTaskId(task.id);
+                              setTaskCreateOpen(true);
+                              setTaskForm({ title: task.title, status: task.status, dueDate: task.dueDate ?? '' });
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                            onClick={() => setDeletingTaskId(task.id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expenses tab */}
+      {activeTab === 'expenses' && (
+        <div className="px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+          <div className="rounded-2xl bg-panel p-6 shadow-lg">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm font-semibold text-slate-200">Expenses</div>
+                <div className="text-xs text-slate-500">Record and track costs for this project.</div>
+              </div>
+              {!expenseCreateOpen && !editingExpenseId && (
+                <button
+                  className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                  onClick={() => setExpenseCreateOpen(true)}
+                >
+                  Add Expense
+                </button>
+              )}
+            </div>
+
+            {(expenseCreateOpen || editingExpenseId) && (
+              <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-slate-200">
+                    {editingExpenseId ? 'Edit Expense' : 'New Expense'}
+                  </div>
+                  <button className="text-xs uppercase tracking-wide text-slate-400" onClick={closeExpenseForm}>
+                    Cancel
+                  </button>
+                </div>
+                {expenseError && (
+                  <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                    {expenseError}
+                  </div>
+                )}
+                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  <select
+                    value={expenseForm.vendorId}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, vendorId: e.target.value }))}
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.vendorId ? errorClass : ''}`}
+                  >
+                    <option value="">Select vendor</option>
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    value={expenseForm.description}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, description: e.target.value }))}
+                    placeholder="Description"
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.description.trim() ? errorClass : ''}`}
+                  />
+                  <input
+                    type="number"
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, amount: e.target.value }))}
+                    placeholder="Amount ($)"
+                    min="0"
+                    step="0.01"
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.amount ? errorClass : ''}`}
+                  />
+                  <select
+                    value={expenseForm.categoryId}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.categoryId ? errorClass : ''}`}
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={expenseForm.lineItemId}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, lineItemId: e.target.value }))}
+                    className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
+                  >
+                    <option value="">No line item (optional)</option>
+                    {lineItems.map((li) => (
+                      <option key={li.id} value={li.id}>{li.description}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={expenseForm.expenseDate}
+                    onChange={(e) => setExpenseForm((prev) => ({ ...prev, expenseDate: e.target.value }))}
+                    className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.expenseDate ? errorClass : ''}`}
+                  />
+                </div>
+                <button
+                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                  onClick={handleExpenseSubmit}
+                >
+                  {editingExpenseId ? 'Update Expense' : 'Add Expense'}
+                </button>
+              </div>
+            )}
+
+            <div className="mt-4">
+              {expenses.length === 0 ? (
+                <div className="text-sm text-slate-400">No expenses yet.</div>
+              ) : (
+                <>
+                  <div className="divide-y divide-slate-800 text-sm">
+                    {expenses.map((expense) => {
+                      const categoryName = categories.find((c) => c.id === expense.categoryId)?.name ?? expense.categoryId;
+                      const vendorName = vendors.find((v) => v.id === expense.vendorId)?.name ?? expense.vendorId;
+                      const lineItemDesc = expense.lineItemId
+                        ? lineItems.find((li) => li.id === expense.lineItemId)?.description
+                        : undefined;
+                      return (
+                        <div key={expense.id} className="flex items-center justify-between py-3">
+                          <div>
+                            <div className="font-medium text-slate-100">{vendorName}</div>
+                            <div className="text-xs text-slate-400">
+                              {expense.description} • {categoryName} • {expense.expenseDate}
+                              {lineItemDesc && ` • ${lineItemDesc}`}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm font-semibold text-slate-100">
+                              {fmt.format(expense.amount)}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {deletingExpenseId === expense.id ? (
+                                <>
+                                  <button
+                                    className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                                    onClick={() => handleExpenseDelete(expense.id)}
+                                  >
+                                    Confirm delete
+                                  </button>
+                                  <button
+                                    className="text-xs text-slate-400"
+                                    onClick={() => setDeletingExpenseId(null)}
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                    onClick={() => {
+                                      setEditingExpenseId(expense.id);
+                                      setExpenseCreateOpen(true);
+                                      setExpenseForm({
+                                        vendorId: expense.vendorId,
+                                        description: expense.description,
+                                        amount: expense.amount.toString(),
+                                        categoryId: expense.categoryId,
+                                        expenseDate: expense.expenseDate,
+                                        lineItemId: expense.lineItemId ?? '',
+                                      });
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
+                                    onClick={() => setDeletingExpenseId(expense.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 flex justify-end border-t border-slate-800 pt-4">
+                    <div className="text-sm text-slate-400">
+                      Total: <span className="font-semibold text-slate-100">{fmt.format(expenses.reduce((sum, e) => sum + e.amount, 0))}</span>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
