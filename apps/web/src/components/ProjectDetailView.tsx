@@ -54,9 +54,9 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   const [error, setError] = useState<string | null>(null);
 
   // — project edit —
-  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState(false);
   const [form, setForm] = useState({
     name: '',
     status: 'planning' as ProjectItem['status'],
@@ -67,7 +67,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   });
 
   // — tabs —
-  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses' | 'settings'>('overview');
 
   // — tasks (project-scoped) —
   const [taskStatusFilter, setTaskStatusFilter] = useState('');
@@ -176,26 +176,13 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
       if (!res.ok) throw new Error('Unable to save project');
       const data = (await res.json()) as { data: ProjectItem };
       setProject(data.data);
-      setIsEditing(false);
+      setEditSuccess(true);
+      setTimeout(() => setEditSuccess(false), 3000);
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Unable to save project');
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    if (!project) return;
-    setForm({
-      name: project.name,
-      status: project.status,
-      startDate: project.startDate ?? '',
-      endDate: project.endDate ?? '',
-      budgetTotal: project.budgetTotal?.toString() ?? '',
-      notes: project.notes ?? '',
-    });
-    setEditError(null);
-    setIsEditing(false);
   };
 
   // — budget: line item handlers —
@@ -411,33 +398,17 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {deletingProjectId === project.id ? (
-            <>
-              <button
-                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                onClick={() => onDeleteProject(project.id)}
-              >
-                Confirm delete
-              </button>
-              <button className="text-xs text-slate-400" onClick={() => onRequestDeleteProject(null)}>
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button
-              className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-              onClick={() => onRequestDeleteProject(project.id)}
-            >
-              Delete Project
-            </button>
-          )}
-        </div>
+        <button
+          className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:text-white"
+          onClick={() => setActiveTab('settings')}
+        >
+          Settings
+        </button>
       </header>
 
       {/* Tab bar */}
       <div className="flex border-b border-slate-800 px-4 sm:px-6 lg:px-8">
-        {(['overview', 'budget', 'tasks', 'expenses'] as const).map((tab) => (
+        {(['overview', 'budget', 'tasks', 'expenses', 'settings'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -460,106 +431,19 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
             <div className="rounded-2xl bg-panel p-6 shadow-lg">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-200">Project Summary</div>
-                <div className="flex items-center gap-2 text-xs">
-                  {!isEditing ? (
-                    <button
-                      className="rounded-full border border-slate-700 px-3 py-1 text-slate-200"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        className="rounded-full border border-slate-700 px-3 py-1 text-slate-200"
-                        onClick={handleCancel}
-                        disabled={saving}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="rounded-full bg-accent px-3 py-1 text-slate-950"
-                        onClick={handleSave}
-                        disabled={saving}
-                      >
-                        {saving ? 'Saving...' : 'Save'}
-                      </button>
-                    </>
-                  )}
-                </div>
+                <button
+                  className="text-xs text-slate-400 hover:text-slate-200"
+                  onClick={() => setActiveTab('settings')}
+                >
+                  Edit in Settings →
+                </button>
               </div>
-              {editError && (
-                <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                  {editError}
-                </div>
-              )}
-              {!isEditing ? (
-                <div className="mt-4 space-y-2 text-sm text-slate-300">
-                  <div>Start Date: {project.startDate ?? 'Not set'}</div>
-                  <div>End Date: {project.endDate ?? 'Not set'}</div>
-                  <div>Budget Total: {project.budgetTotal ? fmt.format(project.budgetTotal) : 'Not set'}</div>
-                  <div>Notes: {project.notes || 'None'}</div>
-                </div>
-              ) : (
-                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                  <div className="col-span-2">
-                    <label className="text-xs uppercase tracking-wide text-slate-400">Project Name</label>
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-slate-400">Status</label>
-                    <select
-                      value={form.status}
-                      onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as ProjectItem['status'] }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    >
-                      <option value="planning">Planning</option>
-                      <option value="active">Active</option>
-                      <option value="on_hold">On hold</option>
-                      <option value="completed">Completed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-slate-400">Budget Total</label>
-                    <input
-                      type="number"
-                      value={form.budgetTotal}
-                      onChange={(e) => setForm((prev) => ({ ...prev, budgetTotal: e.target.value }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-slate-400">Start Date</label>
-                    <input
-                      type="date"
-                      value={form.startDate}
-                      onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-wide text-slate-400">End Date</label>
-                    <input
-                      type="date"
-                      value={form.endDate}
-                      onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-xs uppercase tracking-wide text-slate-400">Notes</label>
-                    <input
-                      value={form.notes}
-                      onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-                      className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="mt-4 space-y-2 text-sm text-slate-300">
+                <div>Start Date: {project.startDate ?? 'Not set'}</div>
+                <div>End Date: {project.endDate ?? 'Not set'}</div>
+                <div>Budget Total: {project.budgetTotal ? fmt.format(project.budgetTotal) : 'Not set'}</div>
+                <div>Notes: {project.notes || 'None'}</div>
+              </div>
             </div>
 
             {/* Snapshot */}
@@ -1356,6 +1240,124 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
               )}
             </div>
           </div>
+        </div>
+      )}
+      {/* Settings tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+
+          {/* Project details form */}
+          <div className="rounded-2xl bg-panel p-6 shadow-lg">
+            <div className="text-sm font-semibold text-slate-200">Project Details</div>
+            {editError && (
+              <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{editError}</div>
+            )}
+            {editSuccess && (
+              <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Project saved.</div>
+            )}
+            <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+              <div className="col-span-2">
+                <label className="text-xs uppercase tracking-wide text-slate-400">Project Name</label>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-slate-400">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as ProjectItem['status'] }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                >
+                  <option value="planning">Planning</option>
+                  <option value="active">Active</option>
+                  <option value="on_hold">On Hold</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-slate-400">Budget Total</label>
+                <input
+                  type="number"
+                  value={form.budgetTotal}
+                  onChange={(e) => setForm((prev) => ({ ...prev, budgetTotal: e.target.value }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-slate-400">Start Date</label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-wide text-slate-400">End Date</label>
+                <input
+                  type="date"
+                  value={form.endDate}
+                  onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs uppercase tracking-wide text-slate-400">Notes</label>
+                <input
+                  value={form.notes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  className="mt-2 w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              </div>
+            </div>
+            <button
+              className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+
+          {/* Danger zone */}
+          <div className="rounded-2xl border border-red-900/50 bg-panel p-6 shadow-lg">
+            <div className="text-sm font-semibold text-red-400">Danger Zone</div>
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-200">Delete this project</div>
+                <div className="text-xs text-slate-400">Permanently removes the project and all associated tasks, expenses, and budget data.</div>
+              </div>
+              <div className="ml-6 shrink-0">
+                {deletingProjectId === project.id ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
+                      onClick={() => onDeleteProject(project.id)}
+                    >
+                      Confirm delete
+                    </button>
+                    <button
+                      className="text-xs text-slate-400"
+                      onClick={() => onRequestDeleteProject(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="rounded-full border border-red-900 px-4 py-2 text-xs font-medium text-red-400 hover:bg-red-900/20"
+                    onClick={() => onRequestDeleteProject(project.id)}
+                  >
+                    Delete Project
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
     </>
