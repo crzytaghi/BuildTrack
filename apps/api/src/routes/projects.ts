@@ -249,6 +249,38 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     return { data: await prisma.category.findMany({ where: { companyId } }) };
   });
 
+  app.post('/categories', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const body = z.object({ name: z.string().min(1) }).parse(req.body);
+    const id = `cat_${Date.now()}`;
+    const category = await prisma.category.create({ data: { id, companyId, name: body.name } });
+    reply.code(201).send({ data: category });
+  });
+
+  app.patch('/categories/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const { id } = req.params as { id: string };
+    const body = z.object({ name: z.string().min(1) }).parse(req.body);
+    const existing = await prisma.category.findFirst({ where: { id, companyId } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
+    const updated = await prisma.category.update({ where: { id }, data: { name: body.name } });
+    return { data: updated };
+  });
+
+  app.delete('/categories/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const { id } = req.params as { id: string };
+    const existing = await prisma.category.findFirst({ where: { id, companyId } });
+    if (!existing) return reply.code(404).send({ error: 'Not found' });
+    const expenseCount = await prisma.expense.count({ where: { categoryId: id } });
+    const lineItemCount = await prisma.budgetLineItem.count({ where: { categoryId: id } });
+    if (expenseCount > 0 || lineItemCount > 0) {
+      return reply.code(409).send({ error: 'Category is in use and cannot be deleted' });
+    }
+    await prisma.category.delete({ where: { id } });
+    reply.code(204).send();
+  });
+
   app.get('/vendors', { preHandler: requireAuth }, async (req) => {
     const { companyId } = (req as any).auth.user;
     return { data: await prisma.vendor.findMany({ where: { companyId } }) };
