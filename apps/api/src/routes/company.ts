@@ -23,6 +23,13 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
     };
   });
 
+  app.patch('/company/me', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const body = z.object({ name: z.string().min(1) }).parse(req.body);
+    const updated = await prisma.company.update({ where: { id: companyId }, data: { name: body.name } });
+    return reply.send({ company: { id: updated.id, name: updated.name, companySetupComplete: updated.companySetupComplete } });
+  });
+
   app.post('/company/setup', { preHandler: requireAuth }, async (req, reply) => {
     const body = z
       .object({

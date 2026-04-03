@@ -18,6 +18,9 @@ import ProjectDetailView from './components/ProjectDetailView';
 import TasksView from './components/TasksView';
 import ExpensesView from './components/ExpensesView';
 import VendorsView from './components/VendorsView';
+import ReportsView from './components/ReportsView';
+import SettingsView from './components/SettingsView';
+import DocumentsView from './components/DocumentsView';
 import { getApiBase } from './lib/api';
 import type { BudgetLineItem, Category, ExpenseFormState, ExpenseItem, ProjectFormState, ProjectItem, ProjectStatus, TaskItem, VendorFormState, VendorItem } from './types/projects';
 
@@ -109,6 +112,12 @@ const AppShell = () => {
   const [expenseCreateOpen, setExpenseCreateOpen] = useState(false);
   const [expenseSubmitAttempted, setExpenseSubmitAttempted] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryCreateOpen, setCategoryCreateOpen] = useState(false);
+  const [categorySubmitAttempted, setCategorySubmitAttempted] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [categoryForm, setCategoryForm] = useState({ name: '' });
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [vendors, setVendors] = useState<VendorItem[]>([]);
   const [vendorsLoading, setVendorsLoading] = useState(false);
   const [vendorsError, setVendorsError] = useState<string | null>(null);
@@ -212,7 +221,7 @@ const AppShell = () => {
         const params = new URLSearchParams();
         if (location.pathname === '/tasks') {
           if (taskFilters.projectId) params.set('projectId', taskFilters.projectId);
-          if (taskFilters.status) params.set('status', taskFilters.status);
+          if (taskFilters.status && taskFilters.status !== 'overdue') params.set('status', taskFilters.status);
           if (taskFilters.fromDate) params.set('fromDate', taskFilters.fromDate);
           if (taskFilters.toDate) params.set('toDate', taskFilters.toDate);
         }
@@ -221,7 +230,11 @@ const AppShell = () => {
         });
         if (!res.ok) throw new Error('Unable to load tasks');
         const data = (await res.json()) as { data: TaskItem[] };
-        setTasks(data.data);
+        const today = new Date().toISOString().split('T')[0];
+        const filtered = taskFilters.status === 'overdue'
+          ? data.data.filter((t) => t.dueDate && t.dueDate < today && t.status !== 'done')
+          : data.data;
+        setTasks(filtered);
       } catch (err) {
         if (location.pathname === '/tasks') setTasksError(err instanceof Error ? err.message : 'Unable to load tasks');
       } finally {
@@ -636,6 +649,47 @@ const AppShell = () => {
     setDeletingExpenseId(null);
   };
 
+  const closeCategoryForm = () => {
+    setCategoryCreateOpen(false);
+    setEditingCategoryId(null);
+    setCategorySubmitAttempted(false);
+    setCategoryForm({ name: '' });
+    setCategoryError(null);
+  };
+
+  const handleCategorySubmit = async () => {
+    if (!token) return;
+    setCategorySubmitAttempted(true);
+    if (!categoryForm.name.trim()) return;
+    setCategoryError(null);
+    const method = editingCategoryId ? 'PATCH' : 'POST';
+    const url = editingCategoryId ? `${API_BASE}/categories/${editingCategoryId}` : `${API_BASE}/categories`;
+    const res = await fetch(url, {
+      method,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: categoryForm.name.trim() }),
+    });
+    if (!res.ok) { setCategoryError('Unable to save category'); return; }
+    const data = (await res.json()) as { data: Category };
+    setCategories((prev) =>
+      editingCategoryId ? prev.map((c) => (c.id === data.data.id ? data.data : c)) : [...prev, data.data]
+    );
+    closeCategoryForm();
+  };
+
+  const handleCategoryDelete = async (id: string) => {
+    if (!token) return;
+    const res = await fetch(`${API_BASE}/categories/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      const body = await res.json() as { error?: string };
+      setCategoryError(body.error ?? 'Unable to delete category');
+      setDeletingCategoryId(null);
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    setDeletingCategoryId(null);
+  };
+
   const handleVendorDelete = async (id: string) => {
     if (!token) return;
     await fetch(`${API_BASE}/vendors/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
@@ -970,6 +1024,19 @@ const AppShell = () => {
                   deletingExpenseId={deletingExpenseId}
                   onRequestDeleteExpense={setDeletingExpenseId}
                   onDeleteExpense={handleExpenseDelete}
+                  categoryCreateOpen={categoryCreateOpen}
+                  categorySubmitAttempted={categorySubmitAttempted}
+                  editingCategoryId={editingCategoryId}
+                  deletingCategoryId={deletingCategoryId}
+                  categoryForm={categoryForm}
+                  categoryError={categoryError}
+                  onCreateCategory={() => { setCategoryCreateOpen(true); setEditingCategoryId(null); setCategoryForm({ name: '' }); setCategorySubmitAttempted(false); }}
+                  onCategoryFormChange={setCategoryForm}
+                  onSubmitCategory={handleCategorySubmit}
+                  onCancelCategoryEdit={closeCategoryForm}
+                  onEditCategory={(c: Category) => { setEditingCategoryId(c.id); setCategoryCreateOpen(true); setCategoryForm({ name: c.name }); }}
+                  onRequestDeleteCategory={setDeletingCategoryId}
+                  onDeleteCategory={handleCategoryDelete}
                 />
               }
             />
@@ -1040,6 +1107,9 @@ const AppShell = () => {
                 />
               }
             />
+            <Route path="/reports" element={<ReportsView token={token ?? ''} />} />
+            <Route path="/settings" element={<SettingsView token={token ?? ''} userEmail={user?.email ?? ''} />} />
+            <Route path="/documents" element={<DocumentsView />} />
           </Routes>
         </main>
       </div>
