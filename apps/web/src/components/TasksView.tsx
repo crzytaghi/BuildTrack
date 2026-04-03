@@ -39,6 +39,8 @@ type Props = {
   onDeleteTask: (id: string) => void;
 };
 
+const today = new Date().toISOString().split('T')[0];
+
 const TasksView = ({
   projects,
   tasks,
@@ -91,6 +93,7 @@ const TasksView = ({
             className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
           >
             <option value="">All Statuses</option>
+            <option value="overdue">Overdue</option>
               {statusOptions.map((status) => (
                 <option key={status} value={status}>
                   {statusLabel[status]}
@@ -224,10 +227,16 @@ const TasksView = ({
               ) : (
                 tasks.map((task) => {
                   const projectName = projects.find((p) => p.id === task.projectId)?.name ?? 'Unknown Project';
+                  const isOverdue = task.dueDate && task.dueDate < today && task.status !== 'done';
                   return (
                   <div key={task.id} className="flex items-center justify-between py-3">
                     <div>
-                      <div className="font-medium text-slate-100">{task.title}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-slate-100">{task.title}</div>
+                        {isOverdue && (
+                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">Overdue</span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400">
                         {projectName} • {statusLabel[task.status]} • {task.dueDate || 'No due date'}
                       </div>

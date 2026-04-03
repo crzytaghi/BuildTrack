@@ -70,6 +70,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses'>('overview');
 
   // — tasks (project-scoped) —
+  const [taskStatusFilter, setTaskStatusFilter] = useState('');
   const [taskCreateOpen, setTaskCreateOpen] = useState(false);
   const [taskSubmitAttempted, setTaskSubmitAttempted] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -388,6 +389,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
     );
   }
 
+  const today = new Date().toISOString().split('T')[0];
   const totalSpend = expenses.reduce((sum, e) => sum + e.amount, 0);
   const variance = (project.budgetTotal ?? 0) - totalSpend;
   const lineItemsTotal = lineItems.reduce((sum, li) => sum + li.budgetedAmount, 0);
@@ -600,17 +602,25 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                 {tasks.length === 0 ? (
                   <div className="text-slate-400">No tasks yet.</div>
                 ) : (
-                  tasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between py-3">
-                      <div>
-                        <div className="font-medium text-slate-100">{task.title}</div>
-                        <div className="mt-0.5 text-xs text-slate-400">{task.dueDate ?? 'No due date'}</div>
+                  tasks.map((task) => {
+                    const isOverdue = task.dueDate && task.dueDate < today && task.status !== 'done';
+                    return (
+                      <div key={task.id} className="flex items-center justify-between py-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-slate-100">{task.title}</div>
+                            {isOverdue && (
+                              <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">Overdue</span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 text-xs text-slate-400">{task.dueDate ?? 'No due date'}</div>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
+                          {taskStatusLabel[task.status] ?? task.status}
+                        </span>
                       </div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
-                        {taskStatusLabel[task.status] ?? task.status}
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -1079,14 +1089,41 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
               </div>
             )}
 
-            <div className="mt-4 divide-y divide-slate-800 text-sm">
-              {tasks.length === 0 ? (
-                <div className="text-slate-400">No tasks yet.</div>
-              ) : (
-                tasks.map((task) => (
+            <div className="mt-4">
+              <select
+                value={taskStatusFilter}
+                onChange={(e) => setTaskStatusFilter(e.target.value)}
+                className="rounded-xl bg-surface px-4 py-2 text-sm text-slate-100 outline-none ring-1 ring-slate-800"
+              >
+                <option value="">All Statuses</option>
+                <option value="overdue">Overdue</option>
+                {(['todo', 'in_progress', 'blocked', 'done'] as const).map((s) => (
+                  <option key={s} value={s}>{taskStatusLabel[s]}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-3 divide-y divide-slate-800 text-sm">
+              {(() => {
+                const filtered = tasks.filter((t) =>
+                  !taskStatusFilter ||
+                  (taskStatusFilter === 'overdue'
+                    ? t.dueDate && t.dueDate < today && t.status !== 'done'
+                    : t.status === taskStatusFilter)
+                );
+                return filtered.length === 0 ? (
+                  <div className="text-slate-400">{tasks.length === 0 ? 'No tasks yet.' : 'No tasks match this filter.'}</div>
+                ) : <>{filtered.map((task) => {
+                  const isOverdue = task.dueDate && task.dueDate < today && task.status !== 'done';
+                  return (
                   <div key={task.id} className="flex items-center justify-between py-3">
                     <div>
-                      <div className="font-medium text-slate-100">{task.title}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-slate-100">{task.title}</div>
+                        {isOverdue && (
+                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-medium text-red-300">Overdue</span>
+                        )}
+                      </div>
                       <div className="text-xs text-slate-400">
                         {taskStatusLabel[task.status]} • {task.dueDate ?? 'No due date'}
                       </div>
@@ -1132,8 +1169,9 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                       )}
                     </div>
                   </div>
-                ))
-              )}
+                  );
+                })}</>;
+              })()}
             </div>
           </div>
         </div>
