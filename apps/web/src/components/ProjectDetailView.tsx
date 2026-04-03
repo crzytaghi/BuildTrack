@@ -622,12 +622,29 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                     className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
                   />
                 </div>
-                <button
-                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  onClick={handleLineItemSubmit}
-                >
-                  {editingLineItemId ? 'Update Line Item' : 'Add Line Item'}
-                </button>
+                <div className="mt-5 flex items-center gap-4">
+                  <button
+                    className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                    onClick={handleLineItemSubmit}
+                  >
+                    {editingLineItemId ? 'Update Line Item' : 'Add Line Item'}
+                  </button>
+                  {editingLineItemId && (
+                    <div className="ml-auto">
+                      {deletingLineItemId === editingLineItemId ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Are you sure?</span>
+                          <button className="text-xs text-red-300" onClick={() => handleLineItemDelete(editingLineItemId)}>Confirm</button>
+                          <button className="text-xs text-slate-400" onClick={() => setDeletingLineItemId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="text-xs text-red-400 hover:text-red-300" onClick={() => setDeletingLineItemId(editingLineItemId)}>
+                          Delete line item
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -680,46 +697,22 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                           >
                             {itemQuotes.length} Quotes
                           </button>
-                          {deletingLineItemId === item.id ? (
-                            <>
-                              <button
-                                className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                                onClick={() => handleLineItemDelete(item.id)}
-                              >
-                                Confirm delete
-                              </button>
-                              <button
-                                className="text-xs text-slate-400"
-                                onClick={() => setDeletingLineItemId(null)}
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                                onClick={() => {
-                                  setEditingLineItemId(item.id);
-                                  setLineItemCreateOpen(true);
-                                  setLineItemForm({
-                                    categoryId: item.categoryId,
-                                    description: item.description,
-                                    budgetedAmount: item.budgetedAmount.toString(),
-                                    notes: item.notes ?? '',
-                                  });
-                                }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                                onClick={() => setDeletingLineItemId(item.id)}
-                              >
-                                Delete
-                              </button>
-                            </>
-                          )}
+                          <button
+                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                            onClick={() => {
+                              setEditingLineItemId(item.id);
+                              setLineItemCreateOpen(true);
+                              setLineItemForm({
+                                categoryId: item.categoryId,
+                                description: item.description,
+                                budgetedAmount: item.budgetedAmount.toString(),
+                                notes: item.notes ?? '',
+                              });
+                              setDeletingLineItemId(null);
+                            }}
+                          >
+                            Edit
+                          </button>
                         </div>
                       </div>
 
@@ -858,29 +851,6 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                                             Edit
                                           </button>
                                         )}
-                                        {deletingQuoteId === quote.id ? (
-                                          <>
-                                            <button
-                                              className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                                              onClick={(e) => { e.stopPropagation(); handleQuoteDelete(quote.id); }}
-                                            >
-                                              Confirm delete
-                                            </button>
-                                            <button
-                                              className="text-xs text-slate-400"
-                                              onClick={(e) => { e.stopPropagation(); setDeletingQuoteId(null); }}
-                                            >
-                                              Cancel
-                                            </button>
-                                          </>
-                                        ) : (
-                                          <button
-                                            className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                                            onClick={(e) => { e.stopPropagation(); setDeletingQuoteId(quote.id); }}
-                                          >
-                                            Delete
-                                          </button>
-                                        )}
                                         <span className="text-xs text-slate-500">{isExpanded ? '▲' : '▼'}</span>
                                       </div>
                                     </div>
@@ -888,6 +858,19 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                                       <div className="mt-2 rounded-xl bg-surface/60 px-4 py-3 text-xs text-slate-300">
                                         <span className="font-semibold text-slate-400">Description: </span>
                                         {quote.description ?? 'None'}
+                                        <div className="mt-3 flex justify-end">
+                                          {deletingQuoteId === quote.id ? (
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-slate-400">Are you sure?</span>
+                                              <button className="text-red-300" onClick={() => handleQuoteDelete(quote.id)}>Confirm</button>
+                                              <button className="text-slate-400" onClick={() => setDeletingQuoteId(null)}>Cancel</button>
+                                            </div>
+                                          ) : (
+                                            <button className="text-red-400 hover:text-red-300" onClick={() => setDeletingQuoteId(quote.id)}>
+                                              Delete quote
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -964,12 +947,29 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                     className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${taskSubmitAttempted && !taskForm.dueDate ? errorClass : ''}`}
                   />
                 </div>
-                <button
-                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  onClick={handleTaskSubmit}
-                >
-                  {editingTaskId ? 'Update Task' : 'Create Task'}
-                </button>
+                <div className="mt-5 flex items-center gap-4">
+                  <button
+                    className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                    onClick={handleTaskSubmit}
+                  >
+                    {editingTaskId ? 'Update Task' : 'Create Task'}
+                  </button>
+                  {editingTaskId && (
+                    <div className="ml-auto">
+                      {deletingTaskId === editingTaskId ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Are you sure?</span>
+                          <button className="text-xs text-red-300" onClick={() => handleTaskDelete(editingTaskId)}>Confirm</button>
+                          <button className="text-xs text-slate-400" onClick={() => setDeletingTaskId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="text-xs text-red-400 hover:text-red-300" onClick={() => setDeletingTaskId(editingTaskId)}>
+                          Delete task
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1016,41 +1016,17 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${taskStatusBadge[task.status] ?? 'bg-slate-700 text-slate-300'}`}>
                         {taskStatusLabel[task.status]}
                       </span>
-                      {deletingTaskId === task.id ? (
-                        <>
-                          <button
-                            className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                            onClick={() => handleTaskDelete(task.id)}
-                          >
-                            Confirm delete
-                          </button>
-                          <button
-                            className="text-xs text-slate-400"
-                            onClick={() => setDeletingTaskId(null)}
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                            onClick={() => {
-                              setEditingTaskId(task.id);
-                              setTaskCreateOpen(true);
-                              setTaskForm({ title: task.title, status: task.status, dueDate: task.dueDate ?? '' });
-                            }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                            onClick={() => setDeletingTaskId(task.id)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
+                      <button
+                        className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                        onClick={() => {
+                          setEditingTaskId(task.id);
+                          setTaskCreateOpen(true);
+                          setTaskForm({ title: task.title, status: task.status, dueDate: task.dueDate ?? '' });
+                          setDeletingTaskId(null);
+                        }}
+                      >
+                        Edit
+                      </button>
                     </div>
                   </div>
                   );
@@ -1148,12 +1124,29 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                     className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${expenseSubmitAttempted && !expenseForm.expenseDate ? errorClass : ''}`}
                   />
                 </div>
-                <button
-                  className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
-                  onClick={handleExpenseSubmit}
-                >
-                  {editingExpenseId ? 'Update Expense' : 'Add Expense'}
-                </button>
+                <div className="mt-5 flex items-center gap-4">
+                  <button
+                    className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                    onClick={handleExpenseSubmit}
+                  >
+                    {editingExpenseId ? 'Update Expense' : 'Add Expense'}
+                  </button>
+                  {editingExpenseId && (
+                    <div className="ml-auto">
+                      {deletingExpenseId === editingExpenseId ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Are you sure?</span>
+                          <button className="text-xs text-red-300" onClick={() => handleExpenseDelete(editingExpenseId)}>Confirm</button>
+                          <button className="text-xs text-slate-400" onClick={() => setDeletingExpenseId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="text-xs text-red-400 hover:text-red-300" onClick={() => setDeletingExpenseId(editingExpenseId)}>
+                          Delete expense
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1183,48 +1176,24 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                               {fmt.format(expense.amount)}
                             </div>
                             <div className="flex items-center gap-2">
-                              {deletingExpenseId === expense.id ? (
-                                <>
-                                  <button
-                                    className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                                    onClick={() => handleExpenseDelete(expense.id)}
-                                  >
-                                    Confirm delete
-                                  </button>
-                                  <button
-                                    className="text-xs text-slate-400"
-                                    onClick={() => setDeletingExpenseId(null)}
-                                  >
-                                    Cancel
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                                    onClick={() => {
-                                      setEditingExpenseId(expense.id);
-                                      setExpenseCreateOpen(true);
-                                      setExpenseForm({
-                                        vendorId: expense.vendorId,
-                                        description: expense.description,
-                                        amount: expense.amount.toString(),
-                                        categoryId: expense.categoryId,
-                                        expenseDate: expense.expenseDate,
-                                        lineItemId: expense.lineItemId ?? '',
-                                      });
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                                    onClick={() => setDeletingExpenseId(expense.id)}
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                                onClick={() => {
+                                  setEditingExpenseId(expense.id);
+                                  setExpenseCreateOpen(true);
+                                  setExpenseForm({
+                                    vendorId: expense.vendorId,
+                                    description: expense.description,
+                                    amount: expense.amount.toString(),
+                                    categoryId: expense.categoryId,
+                                    expenseDate: expense.expenseDate,
+                                    lineItemId: expense.lineItemId ?? '',
+                                  });
+                                  setDeletingExpenseId(null);
+                                }}
+                              >
+                                Edit
+                              </button>
                             </div>
                           </div>
                         </div>
