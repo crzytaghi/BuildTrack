@@ -1,3 +1,5 @@
+export type User = { id: string; email: string; name: string };
+
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed';
 
 export type ProjectItem = {
