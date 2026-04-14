@@ -5,7 +5,7 @@ import type { ProjectFormState, ProjectItem, ProjectStatus, User } from '../type
 
 const API_BASE = getApiBase();
 
-const WATCHED_PATHS = ['/', '/projects', '/tasks', '/expenses', '/vendors'];
+const WATCHED_PATHS = ['/', '/projects', '/tasks', '/expenses', '/vendors', '/documents'];
 
 export const useProjects = (token: string | null, user: User | null) => {
   const location = useLocation();

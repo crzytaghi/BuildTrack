@@ -11,9 +11,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:migrate:test": "dotenv -e .env.test -- prisma migrate deploy"
+    "prisma:migrate:test": "dotenv -e .env.test -- prisma migrate deploy",
+    "r2:setup-cors": "tsx scripts/setup-r2-cors.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1030.0",
+    "@aws-sdk/s3-request-presigner": "^3.1030.0",
     "@fastify/cors": "^9.0.0",
     "@fastify/helmet": "^11.1.0",
     "@prisma/client": "^5.22.0",

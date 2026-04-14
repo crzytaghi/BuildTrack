@@ -327,7 +327,7 @@ const AppShell = () => {
             />
             <Route path="/reports" element={<ReportsView token={auth.token ?? ''} />} />
             <Route path="/settings" element={<SettingsView token={auth.token ?? ''} userEmail={auth.user?.email ?? ''} />} />
-            <Route path="/documents" element={<DocumentsView />} />
+            <Route path="/documents" element={<DocumentsView token={auth.token ?? ''} projects={projects.projects} />} />
           </Routes>
         </main>
       </div>

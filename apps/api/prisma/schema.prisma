@@ -16,6 +16,7 @@ model Company {
   projects             Project[]
   vendors              Vendor[]
   categories           Category[]
+  documents            Document[]
 }
 
 model User {
@@ -51,6 +52,23 @@ model Project {
   expenses    Expense[]
   lineItems   BudgetLineItem[]
   quotes      Quote[]
+  documents   Document[]
+}
+
+model Document {
+  id        String   @id
+  companyId String
+  projectId String?
+  title     String
+  type      String   @default("other")
+  fileKey   String
+  fileName  String
+  fileSize  Int
+  mimeType  String
+  notes     String?
+  createdAt String
+  company   Company  @relation(fields: [companyId], references: [id])
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 }
 
 model Task {

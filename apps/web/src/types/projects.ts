@@ -112,3 +112,19 @@ export type QuoteFormState = {
   expiresAt: string;
   submittedAt: string;
 };
+
+export type DocumentType = 'contract' | 'permit' | 'drawing' | 'invoice' | 'photo' | 'report' | 'other';
+
+export type DocumentItem = {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  title: string;
+  type: DocumentType;
+  fileKey: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  notes?: string;
+  createdAt: string;
+};
