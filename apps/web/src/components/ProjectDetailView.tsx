@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getApiBase } from '../lib/api';
-import type { BudgetLineItem, Category, ExpenseItem, ProjectItem, QuoteItem, TaskItem } from '../types/projects';
+import type { BudgetLineItem, Category, DocumentItem, DocumentType, ExpenseItem, ProjectItem, QuoteItem, TaskItem } from '../types/projects';
 
 const API_BASE = getApiBase();
 
@@ -32,6 +32,47 @@ const projectStatusLabel: Record<string, string> = {
   on_hold: 'On Hold',
   completed: 'Completed',
 };
+
+const DOC_TYPES: { value: DocumentType; label: string }[] = [
+  { value: 'contract', label: 'Contract' },
+  { value: 'permit', label: 'Permit' },
+  { value: 'drawing', label: 'Drawing' },
+  { value: 'invoice', label: 'Invoice' },
+  { value: 'photo', label: 'Photo' },
+  { value: 'report', label: 'Report' },
+  { value: 'other', label: 'Other' },
+];
+
+const TYPE_COLORS: Record<DocumentType, string> = {
+  contract: 'bg-violet-500/20 text-violet-300',
+  permit: 'bg-amber-500/20 text-amber-300',
+  drawing: 'bg-sky-500/20 text-sky-300',
+  invoice: 'bg-emerald-500/20 text-emerald-300',
+  photo: 'bg-pink-500/20 text-pink-300',
+  report: 'bg-orange-500/20 text-orange-300',
+  other: 'bg-slate-500/20 text-slate-300',
+};
+
+const fmtBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const uploadToR2 = (url: string, file: File, onProgress: (pct: number) => void) =>
+  new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    });
+    xhr.addEventListener('load', () =>
+      xhr.status < 400 ? resolve() : reject(new Error('Upload to storage failed'))
+    );
+    xhr.addEventListener('error', () => reject(new Error('Upload to storage failed')));
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.send(file);
+  });
 
 type Props = {
   projectId: string;
@@ -67,7 +108,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   });
 
   // — tabs —
-  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'budget' | 'tasks' | 'expenses' | 'documents' | 'settings'>('overview');
 
   // — tasks (project-scoped) —
   const [taskStatusFilter, setTaskStatusFilter] = useState('');
@@ -102,6 +143,20 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
   const [quoteForm, setQuoteForm] = useState({ vendorId: '', amount: '', description: '', expiresAt: '', submittedAt: '' });
   const [deletingQuoteId, setDeletingQuoteId] = useState<string | null>(null);
   const [expandedQuoteId, setExpandedQuoteId] = useState<string | null>(null);
+
+  // — documents —
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+  const [docsError, setDocsError] = useState<string | null>(null);
+  const [docUploadOpen, setDocUploadOpen] = useState(false);
+  const [docDragOver, setDocDragOver] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [docForm, setDocForm] = useState({ title: '', type: 'other' as DocumentType, notes: '' });
+  const [docUploading, setDocUploading] = useState(false);
+  const [docUploadProgress, setDocUploadProgress] = useState(0);
+  const [docUploadError, setDocUploadError] = useState<string | null>(null);
+  const [docDeletingId, setDocDeletingId] = useState<string | null>(null);
+  const docFileInputRef = useRef<HTMLInputElement>(null);
 
   // — initial load —
   useEffect(() => {
@@ -362,6 +417,86 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
     setDeletingExpenseId(null);
   };
 
+  // — document handlers —
+  const loadDocuments = async () => {
+    setDocsLoading(true);
+    setDocsError(null);
+    try {
+      const res = await fetch(`${API_BASE}/documents?projectId=${projectId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error('Unable to load documents');
+      const data = (await res.json()) as { data: DocumentItem[] };
+      setDocuments(data.data);
+    } catch (err) {
+      setDocsError(err instanceof Error ? err.message : 'Unable to load documents');
+    } finally {
+      setDocsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'documents') loadDocuments();
+  }, [activeTab, projectId]);
+
+  const handleDocFileSelect = (file: File) => {
+    setSelectedFile(file);
+    setDocForm((prev) => ({ ...prev, title: file.name.replace(/\.[^.]+$/, '') }));
+    setDocUploadOpen(true);
+    setDocUploadError(null);
+  };
+
+  const closeDocUploadForm = () => {
+    setDocUploadOpen(false);
+    setSelectedFile(null);
+    setDocForm({ title: '', type: 'other', notes: '' });
+    setDocUploadProgress(0);
+    setDocUploadError(null);
+    if (docFileInputRef.current) docFileInputRef.current.value = '';
+  };
+
+  const handleDocUpload = async () => {
+    if (!selectedFile || !docForm.title.trim()) { setDocUploadError('Title is required'); return; }
+    if (selectedFile.size > 50 * 1024 * 1024) { setDocUploadError('File exceeds 50 MB limit'); return; }
+    setDocUploading(true);
+    setDocUploadProgress(0);
+    setDocUploadError(null);
+    try {
+      const urlRes = await fetch(`${API_BASE}/documents/upload-url`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: selectedFile.name, mimeType: selectedFile.type || 'application/octet-stream', fileSize: selectedFile.size, projectId }),
+      });
+      if (!urlRes.ok) throw new Error('Unable to get upload URL');
+      const { uploadUrl, fileKey } = (await urlRes.json()) as { uploadUrl: string; fileKey: string };
+      await uploadToR2(uploadUrl, selectedFile, setDocUploadProgress);
+      const docRes = await fetch(`${API_BASE}/documents`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileKey, title: docForm.title.trim(), type: docForm.type, fileName: selectedFile.name, fileSize: selectedFile.size, mimeType: selectedFile.type || 'application/octet-stream', projectId, notes: docForm.notes || undefined }),
+      });
+      if (!docRes.ok) throw new Error('Unable to save document record');
+      const { data } = (await docRes.json()) as { data: DocumentItem };
+      setDocuments((prev) => [data, ...prev]);
+      closeDocUploadForm();
+    } catch (err) {
+      setDocUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  const handleDocDownload = async (doc: DocumentItem) => {
+    const res = await fetch(`${API_BASE}/documents/${doc.id}/url`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const { url } = (await res.json()) as { url: string };
+    window.open(url, '_blank');
+  };
+
+  const handleDocDelete = async (id: string) => {
+    await fetch(`${API_BASE}/documents/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    setDocDeletingId(null);
+  };
+
   if (loading) {
     return <div className="px-4 py-6 text-sm text-slate-400 sm:px-6 lg:px-8">Loading project...</div>;
   }
@@ -408,7 +543,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
 
       {/* Tab bar */}
       <div className="flex border-b border-slate-800 px-4 sm:px-6 lg:px-8">
-        {(['overview', 'budget', 'tasks', 'expenses', 'settings'] as const).map((tab) => (
+        {(['overview', 'budget', 'tasks', 'expenses', 'documents', 'settings'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -1327,6 +1462,158 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* Documents tab */}
+      {activeTab === 'documents' && (
+        <div className="space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+          {/* Upload header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-slate-200">Documents</div>
+              <div className="text-xs text-slate-400">Files attached to this project.</div>
+            </div>
+            {!docUploadOpen && (
+              <button
+                className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                onClick={() => docFileInputRef.current?.click()}
+              >
+                Upload File
+              </button>
+            )}
+            <input
+              ref={docFileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocFileSelect(f); }}
+            />
+          </div>
+
+          {/* Upload form */}
+          {docUploadOpen && selectedFile && (
+            <div className="rounded-2xl border border-slate-800 bg-panel p-6 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-200">New Document</div>
+                <button className="text-xs uppercase tracking-wide text-slate-400" onClick={closeDocUploadForm}>Cancel</button>
+              </div>
+              <div className="mt-3 flex items-center gap-3 rounded-xl bg-surface/60 px-4 py-3 text-sm">
+                <span className="text-slate-400">📄</span>
+                <div>
+                  <div className="text-slate-200">{selectedFile.name}</div>
+                  <div className="text-xs text-slate-500">{fmtBytes(selectedFile.size)}</div>
+                </div>
+              </div>
+              {docUploadError && (
+                <div className="mt-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{docUploadError}</div>
+              )}
+              <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+                <input
+                  value={docForm.title}
+                  onChange={(e) => setDocForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder="Document title"
+                  className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${docUploadError && !docForm.title.trim() ? 'ring-red-500/60' : ''}`}
+                />
+                <select
+                  value={docForm.type}
+                  onChange={(e) => setDocForm((p) => ({ ...p, type: e.target.value as DocumentType }))}
+                  className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
+                >
+                  {DOC_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+                <input
+                  value={docForm.notes}
+                  onChange={(e) => setDocForm((p) => ({ ...p, notes: e.target.value }))}
+                  placeholder="Notes (optional)"
+                  className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 sm:col-span-2"
+                />
+              </div>
+              {docUploading ? (
+                <div className="mt-5">
+                  <div className="mb-1 flex justify-between text-xs text-slate-400">
+                    <span>Uploading…</span>
+                    <span>{docUploadProgress}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                    <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${docUploadProgress}%` }} />
+                  </div>
+                </div>
+              ) : (
+                <button className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-slate-950" onClick={handleDocUpload}>
+                  Upload
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Drag & drop zone */}
+          {!docUploadOpen && (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDocDragOver(true); }}
+              onDragLeave={() => setDocDragOver(false)}
+              onDrop={(e) => { e.preventDefault(); setDocDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleDocFileSelect(f); }}
+              onClick={() => docFileInputRef.current?.click()}
+              className={`cursor-pointer rounded-2xl border-2 border-dashed px-8 py-10 text-center transition-colors ${docDragOver ? 'border-accent bg-accent/5' : 'border-slate-700 hover:border-slate-500'}`}
+            >
+              <div className="text-2xl">📁</div>
+              <div className="mt-2 text-sm text-slate-400">
+                Drag & drop a file here, or <span className="text-accent">click to browse</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500">Max 50 MB per file</div>
+            </div>
+          )}
+
+          {/* Document list */}
+          <div className="rounded-2xl bg-panel shadow-lg">
+            {docsLoading ? (
+              <div className="px-6 py-10 text-center text-sm text-slate-400">Loading…</div>
+            ) : docsError ? (
+              <div className="px-6 py-4 text-sm text-red-300">{docsError}</div>
+            ) : documents.length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm text-slate-400">No documents yet. Upload your first file above.</div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between px-6 py-4">
+                    <div className="min-w-0 flex-1 pr-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="font-medium text-slate-100 truncate">{doc.title}</div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[doc.type]}`}>
+                          {DOC_TYPES.find((t) => t.value === doc.type)?.label ?? doc.type}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-400">
+                        {doc.fileName} • {fmtBytes(doc.fileSize)}
+                        {doc.notes && ` • ${doc.notes}`}
+                      </div>
+                      <div className="mt-0.5 text-xs text-slate-500">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                        onClick={() => handleDocDownload(doc)}
+                      >
+                        Download
+                      </button>
+                      {docDeletingId === doc.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-400">Are you sure?</span>
+                          <button className="text-xs text-red-300" onClick={() => handleDocDelete(doc.id)}>Confirm</button>
+                          <button className="text-xs text-slate-400" onClick={() => setDocDeletingId(null)}>Cancel</button>
+                        </div>
+                      ) : (
+                        <button className="text-xs text-slate-500 hover:text-red-400" onClick={() => setDocDeletingId(doc.id)}>
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>
