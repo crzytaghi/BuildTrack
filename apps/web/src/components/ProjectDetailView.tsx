@@ -701,7 +701,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
                 {expenses.length === 0 ? (
                   <div className="text-slate-400">No expenses yet.</div>
                 ) : (
-                  expenses.map((expense) => (
+                  expenses.slice(0, 8).map((expense) => (
                     <div key={expense.id} className="py-3">
                       <div className="font-medium text-slate-100">
                         {vendors.find((v) => v.id === expense.vendorId)?.name ?? '—'}
