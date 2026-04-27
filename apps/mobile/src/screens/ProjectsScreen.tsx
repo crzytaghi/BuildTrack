@@ -1,24 +1,33 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SlideMenu, { MenuItem } from '../components/SlideMenu';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../context/AuthContext';
 import { getApiBase } from '../lib/api';
+import { colors, spacing, radius, fontSize } from '../theme';
 import type { ProjectItem, ProjectStatus } from '../types';
+import type { ProjectsStackParamList } from '../navigation/ProjectsStack';
 
 const API_BASE = getApiBase();
 
-type Props = {
-  token: string;
-  onSelectProject: (id: string) => void;
-  onLogout: () => void;
-  onNavigate: (route: string) => void;
+type Nav = NativeStackNavigationProp<ProjectsStackParamList, 'ProjectsList'>;
+
+const STATUS_OPTIONS: ProjectStatus[] = ['planning', 'active', 'on_hold', 'completed'];
+const STATUS_LABELS: Record<ProjectStatus, string> = {
+  planning: 'Planning',
+  active: 'Active',
+  on_hold: 'On Hold',
+  completed: 'Completed',
 };
 
-const ProjectsScreen = ({ token, onSelectProject, onLogout, onNavigate }: Props) => {
+const ProjectsScreen = () => {
+  const { token } = useAuth();
+  const navigation = useNavigation<Nav>();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     name: '',
     status: 'planning' as ProjectStatus,
@@ -27,18 +36,6 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout, onNavigate }: Props)
     budgetTotal: '',
     notes: '',
   });
-
-  const items: MenuItem[] = [
-    { label: 'Dashboard', onPress: () => onNavigate('Dashboard') },
-    { label: 'Projects', onPress: () => onNavigate('Projects') },
-    { label: 'Tasks', onPress: () => onNavigate('Tasks') },
-    { label: 'Budget', onPress: () => onNavigate('Budget') },
-    { label: 'Expenses', onPress: () => onNavigate('Expenses') },
-    { label: 'Documents', onPress: () => onNavigate('Documents') },
-    { label: 'Reports', onPress: () => onNavigate('Reports') },
-    { label: 'Settings', onPress: () => onNavigate('Settings') },
-    { label: 'Log out', onPress: onLogout },
-  ];
 
   const loadProjects = async () => {
     setLoading(true);
@@ -86,71 +83,118 @@ const ProjectsScreen = ({ token, onSelectProject, onLogout, onNavigate }: Props)
     const data = (await res.json()) as { data: ProjectItem };
     setProjects((prev) => [data.data, ...prev]);
     setForm({ name: '', status: 'planning', startDate: '', endDate: '', budgetTotal: '', notes: '' });
+    setShowForm(false);
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
-      <View style={{ flex: 1, padding: 20 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700' }}>Projects</Text>
-          <TouchableOpacity onPress={() => setMenuOpen(true)}>
-            <Text style={{ color: '#e2e8f0', fontSize: 20 }}>☰</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.pageBg }} edges={['top']}>
+      <View style={{ flex: 1, padding: spacing.xl }}>
+        {/* Header */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg }}>
+          <Text style={{ color: colors.textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>Projects</Text>
+          <TouchableOpacity
+            onPress={() => setShowForm((v) => !v)}
+            style={{ backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md }}
+          >
+            <Text style={{ color: colors.primaryText, fontWeight: '700', fontSize: fontSize.sm }}>
+              {showForm ? 'Cancel' : '+ New'}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {error && (
-          <View style={{ marginTop: 12, backgroundColor: '#7f1d1d', padding: 10, borderRadius: 8 }}>
-            <Text style={{ color: '#fecaca' }}>{error}</Text>
+          <View style={{ marginBottom: spacing.md, backgroundColor: colors.errorBg, padding: spacing.sm, borderRadius: radius.sm }}>
+            <Text style={{ color: colors.errorText }}>{error}</Text>
           </View>
         )}
 
-        <View style={{ marginTop: 16, backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
-          <Text style={{ color: '#e2e8f0', marginBottom: 10 }}>New Project</Text>
-          <TextInput
-            value={form.name}
-            onChangeText={(value) => setForm((prev) => ({ ...prev, name: value }))}
-            placeholder="Project name"
-            placeholderTextColor="#64748b"
-            style={{ backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
-          />
-          <TextInput
-            value={form.status}
-            onChangeText={(value) => setForm((prev) => ({ ...prev, status: value as ProjectStatus }))}
-            placeholder="Status (planning/active/on_hold/completed)"
-            placeholderTextColor="#64748b"
-            style={{ marginTop: 12, backgroundColor: '#111827', color: '#f8fafc', padding: 12, borderRadius: 12 }}
-          />
-          <TouchableOpacity
-            onPress={createProject}
-            style={{ marginTop: 12, backgroundColor: '#0ea5e9', padding: 12, borderRadius: 12, alignItems: 'center' }}
-          >
-            <Text style={{ color: '#0f172a', fontWeight: '700' }}>Create Project</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ flex: 1, marginTop: 16 }}>
-          {loading ? (
-            <Text style={{ color: '#94a3b8' }}>Loading projects...</Text>
-          ) : (
-            <FlatList
-              data={projects}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
+        {/* New project form */}
+        {showForm && (
+          <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.lg }}>
+            <Text style={{ color: colors.textLabel, marginBottom: spacing.md }}>New Project</Text>
+            <TextInput
+              value={form.name}
+              onChangeText={(v) => setForm((p) => ({ ...p, name: v }))}
+              placeholder="Project name *"
+              placeholderTextColor={colors.textMuted}
+              style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md }}
+            />
+            <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.md, marginBottom: spacing.sm }}>
+              Status
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {STATUS_OPTIONS.map((s) => (
                 <TouchableOpacity
-                  onPress={() => onSelectProject(item.id)}
-                  style={{ backgroundColor: '#111827', padding: 14, borderRadius: 14, marginBottom: 12 }}
+                  key={s}
+                  onPress={() => setForm((p) => ({ ...p, status: s }))}
+                  style={{
+                    paddingHorizontal: spacing.md,
+                    paddingVertical: spacing.xs,
+                    borderRadius: radius.full,
+                    backgroundColor: form.status === s ? colors.primary : colors.inputBg,
+                  }}
                 >
-                  <Text style={{ color: '#f8fafc', fontWeight: '600' }}>{item.name}</Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>
-                    {item.status} • {item.startDate || 'No start'} → {item.endDate || 'No end'}
+                  <Text style={{ color: form.status === s ? colors.primaryText : colors.textLabel, fontSize: fontSize.sm }}>
+                    {STATUS_LABELS[s]}
                   </Text>
                 </TouchableOpacity>
-              )}
+              ))}
+            </View>
+            <TextInput
+              value={form.budgetTotal}
+              onChangeText={(v) => setForm((p) => ({ ...p, budgetTotal: v }))}
+              placeholder="Budget total"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="numeric"
+              style={{ marginTop: spacing.md, backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md }}
             />
-          )}
-        </View>
+            <TextInput
+              value={form.notes}
+              onChangeText={(v) => setForm((p) => ({ ...p, notes: v }))}
+              placeholder="Notes"
+              placeholderTextColor={colors.textMuted}
+              multiline
+              style={{ marginTop: spacing.md, backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, minHeight: 72 }}
+            />
+            <TouchableOpacity
+              onPress={createProject}
+              style={{ marginTop: spacing.md, backgroundColor: colors.primary, padding: spacing.md, borderRadius: radius.md, alignItems: 'center' }}
+            >
+              <Text style={{ color: colors.primaryText, fontWeight: '700' }}>Create Project</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Project list */}
+        {loading ? (
+          <Text style={{ color: colors.textSecondary }}>Loading projects...</Text>
+        ) : (
+          <FlatList
+            data={projects}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ProjectDetail', { projectId: item.id })}
+                style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.md }}
+              >
+                <Text style={{ color: colors.textPrimary, fontWeight: '600', fontSize: fontSize.md }}>
+                  {item.name}
+                </Text>
+                <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
+                  {STATUS_LABELS[item.status]}
+                  {item.budgetTotal ? ` • $${item.budgetTotal.toLocaleString()}` : ''}
+                </Text>
+                {(item.startDate || item.endDate) && (
+                  <Text style={{ color: colors.textMuted, fontSize: fontSize.xs, marginTop: spacing.xs }}>
+                    {item.startDate ?? '—'} → {item.endDate ?? '—'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
+          />
+        )}
       </View>
-      <SlideMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={items} />
     </SafeAreaView>
   );
 };

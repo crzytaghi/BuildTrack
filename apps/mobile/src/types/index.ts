@@ -1,3 +1,5 @@
+// Canonical types — kept in sync with apps/web/src/types/projects.ts
+
 export type User = { id: string; email: string; name: string };
 
 export type AuthResponse = { token: string; user: User };
@@ -14,6 +16,15 @@ export type ProjectItem = {
   notes?: string;
 };
 
+export type ProjectFormState = {
+  name: string;
+  status: ProjectStatus;
+  startDate: string;
+  endDate: string;
+  budgetTotal: string;
+  notes: string;
+};
+
 export type TaskItem = {
   id: string;
   projectId: string;
@@ -22,11 +33,67 @@ export type TaskItem = {
   dueDate?: string;
 };
 
+export type VendorItem = {
+  id: string;
+  name: string;
+  trade?: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+};
+
 export type ExpenseItem = {
   id: string;
   projectId: string;
   amount: number;
   categoryId: string;
-  description?: string;
+  vendorId: string;
+  description: string;
   expenseDate: string;
+  lineItemId?: string;
+};
+
+export type Category = {
+  id: string;
+  name: string;
+};
+
+export type BudgetLineItem = {
+  id: string;
+  projectId: string;
+  categoryId: string;
+  description: string;
+  budgetedAmount: number;
+  notes?: string;
+};
+
+export type QuoteStatus = 'pending' | 'awarded' | 'rejected';
+
+export type QuoteItem = {
+  id: string;
+  lineItemId: string;
+  projectId: string;
+  vendorId: string;
+  amount: number;
+  status: QuoteStatus;
+  description?: string;
+  expiresAt?: string;
+  submittedAt: string;
+};
+
+export type DocumentType = 'contract' | 'permit' | 'drawing' | 'invoice' | 'photo' | 'report' | 'other';
+
+export type DocumentItem = {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  title: string;
+  type: DocumentType;
+  fileKey: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  notes?: string;
+  createdAt: string;
 };

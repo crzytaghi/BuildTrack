@@ -1,0 +1,30 @@
+# Sprint 1 E2E — Login flow
+# Run with: maestro test .maestro/01_login.yaml
+
+appId: com.buildtrack.mobile
+---
+- launchApp
+- assertVisible: "BuildTrack"
+- assertVisible: "Login"
+
+# Switch to login tab (should be default)
+- tapOn: "Login"
+
+# Enter credentials
+- tapOn:
+    placeholder: "Email"
+- inputText: "seed@buildtrack.dev"
+- tapOn:
+    placeholder: "Password"
+- inputText: "securepass1"
+
+# Submit
+- tapOn:
+    text: "Login"
+    index: 1  # button, not tab
+
+# After login, bottom tab bar should be visible
+- assertVisible: "Dashboard"
+- assertVisible: "Projects"
+- assertVisible: "Vendors"
+- assertVisible: "Settings"

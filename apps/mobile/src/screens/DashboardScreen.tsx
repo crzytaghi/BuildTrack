@@ -1,74 +1,65 @@
-import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import SlideMenu, { MenuItem } from '../components/SlideMenu';
+import { useAuth } from '../context/AuthContext';
+import { colors, spacing, radius, fontSize } from '../theme';
 
-type Props = {
-  companyName: string;
-  onGoProjects: () => void;
-  onLogout: () => void;
-  onNavigate: (route: string) => void;
-};
-
-const DashboardScreen = ({ companyName, onGoProjects, onLogout, onNavigate }: Props) => {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const items: MenuItem[] = [
-    { label: 'Dashboard', onPress: () => onNavigate('Dashboard') },
-    { label: 'Projects', onPress: () => onNavigate('Projects') },
-    { label: 'Tasks', onPress: () => onNavigate('Tasks') },
-    { label: 'Budget', onPress: () => onNavigate('Budget') },
-    { label: 'Expenses', onPress: () => onNavigate('Expenses') },
-    { label: 'Documents', onPress: () => onNavigate('Documents') },
-    { label: 'Reports', onPress: () => onNavigate('Reports') },
-    { label: 'Settings', onPress: () => onNavigate('Settings') },
-    { label: 'Log out', onPress: onLogout },
-  ];
+const DashboardScreen = () => {
+  const { companyName } = useAuth();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0b1118' }} edges={['top', 'bottom']}>
-      <View style={{ flex: 1, padding: 20 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '700' }}>Dashboard</Text>
-            <Text style={{ color: '#94a3b8', marginTop: 4 }}>{companyName}</Text>
-          </View>
-          <TouchableOpacity onPress={() => setMenuOpen(true)}>
-            <Text style={{ color: '#e2e8f0', fontSize: 20 }}>☰</Text>
-          </TouchableOpacity>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.pageBg }} edges={['top']}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
+        {/* Header */}
+        <View style={{ marginBottom: spacing.xl }}>
+          <Text style={{ color: colors.textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>
+            Dashboard
+          </Text>
+          <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
+            {companyName ?? 'My Company'}
+          </Text>
         </View>
-        <Text style={{ color: '#94a3b8', marginTop: 10 }}>Project overview</Text>
 
-        <View style={{ marginTop: 20, backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
-          <Text style={{ color: '#e2e8f0' }}>KPIs</Text>
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
-            <View style={{ flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 12 }}>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>Total Budget</Text>
-              <Text style={{ color: '#f8fafc', fontWeight: '700' }}>$1.42M</Text>
+        {/* KPI placeholder */}
+        <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.lg }}>
+          <Text style={{ color: colors.textLabel, marginBottom: spacing.md }}>Overview</Text>
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <View style={{ flex: 1, backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md }}>
+              <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm }}>Total Budget</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: spacing.xs }}>—</Text>
             </View>
-            <View style={{ flex: 1, backgroundColor: '#111827', padding: 12, borderRadius: 12 }}>
-              <Text style={{ color: '#94a3b8', fontSize: 12 }}>Actual Spend</Text>
-              <Text style={{ color: '#f8fafc', fontWeight: '700' }}>$620k</Text>
+            <View style={{ flex: 1, backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md }}>
+              <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm }}>Actual Spend</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: spacing.xs }}>—</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
+            <View style={{ flex: 1, backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md }}>
+              <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm }}>Active Projects</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: spacing.xs }}>—</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md }}>
+              <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm }}>Variance</Text>
+              <Text style={{ color: colors.textPrimary, fontWeight: '700', marginTop: spacing.xs }}>—</Text>
             </View>
           </View>
         </View>
 
-        <View style={{ marginTop: 16, backgroundColor: '#0f172a', padding: 16, borderRadius: 16 }}>
-          <Text style={{ color: '#e2e8f0' }}>Tasks Due Soon</Text>
-          {['Foundation pour', 'Framing begins', 'Roofing delivery'].map((task) => (
-            <Text key={task} style={{ color: '#94a3b8', marginTop: 8 }}>
-              {task}
-            </Text>
-          ))}
+        {/* Tasks due soon placeholder */}
+        <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.lg }}>
+          <Text style={{ color: colors.textLabel, marginBottom: spacing.sm }}>Tasks Due Soon</Text>
+          <Text style={{ color: colors.textMuted, fontSize: fontSize.sm }}>
+            Live data coming in Sprint 2
+          </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={onGoProjects}
-          style={{ marginTop: 24, backgroundColor: '#0ea5e9', padding: 14, borderRadius: 12, alignItems: 'center' }}
-        >
-          <Text style={{ color: '#0f172a', fontWeight: '700' }}>View Projects</Text>
-        </TouchableOpacity>
-      </View>
-      <SlideMenu open={menuOpen} onClose={() => setMenuOpen(false)} items={items} />
+        {/* Recent expenses placeholder */}
+        <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg }}>
+          <Text style={{ color: colors.textLabel, marginBottom: spacing.sm }}>Recent Expenses</Text>
+          <Text style={{ color: colors.textMuted, fontSize: fontSize.sm }}>
+            Live data coming in Sprint 2
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
