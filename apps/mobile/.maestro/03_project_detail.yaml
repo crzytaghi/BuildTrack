@@ -1,0 +1,47 @@
+# Sprint 3 E2E — Project Detail Tabs
+# Run with: maestro test .maestro/03_project_detail.yaml
+
+appId: com.buildtrack.mobile
+---
+- launchApp
+- assertVisible: "BuildTrack"
+- tapOn: "Login"
+
+# Login
+- tapOn:
+    placeholder: "Email"
+- inputText: "seed@buildtrack.dev"
+- tapOn:
+    placeholder: "Password"
+- inputText: "securepass1"
+- tapOn:
+    text: "Login"
+    index: 1
+
+# Navigate to Projects tab
+- tapOn: "Projects"
+- assertVisible: "Projects"
+
+# Open first project
+- tapOn:
+    index: 0
+    text: ".*"
+    regex: true
+
+# Overview tab should load with live data
+- assertVisible: "Overview"
+- assertVisible: "Budget"
+- assertVisible: "Spend"
+- assertVisible: "Variance"
+- assertVisible: "Tasks"
+
+# Navigate to Tasks tab
+- tapOn: "Tasks"
+- assertVisible: "Add Task"
+
+# Navigate to Expenses tab
+- tapOn: "Expenses"
+- assertVisible: "Add Expense"
+
+# Navigate to Budget tab
+- tapOn: "Budget"

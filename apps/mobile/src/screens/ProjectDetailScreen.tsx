@@ -1,20 +1,16 @@
-import { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
-import { getApiBase } from '../lib/api';
+import { useProjectDetail } from '../hooks/useProjectDetail';
 import { colors, spacing, radius, fontSize } from '../theme';
-import type { ProjectItem, TaskItem, ExpenseItem } from '../types';
 import type { ProjectsStackParamList } from '../navigation/ProjectsStack';
 import OverviewTab from './project-detail/OverviewTab';
 import TasksTab from './project-detail/TasksTab';
 import ExpensesTab from './project-detail/ExpensesTab';
 import BudgetTab from './project-detail/BudgetTab';
 import DocumentsTab from './project-detail/DocumentsTab';
-
-const API_BASE = getApiBase();
 
 type ProjectTab = 'overview' | 'tasks' | 'expenses' | 'budget' | 'documents';
 const TABS: { key: ProjectTab; label: string }[] = [
@@ -28,43 +24,17 @@ const TABS: { key: ProjectTab; label: string }[] = [
 type Nav = NativeStackNavigationProp<ProjectsStackParamList, 'ProjectDetail'>;
 type Route = RouteProp<ProjectsStackParamList, 'ProjectDetail'>;
 
+import { useState } from 'react';
+
 const ProjectDetailScreen = () => {
   const { token } = useAuth();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { projectId } = route.params;
-
-  const [project, setProject] = useState<ProjectItem | null>(null);
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectTab>('overview');
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [projectRes, tasksRes, expensesRes] = await Promise.all([
-        fetch(`${API_BASE}/projects/${projectId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/projects/${projectId}/tasks`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/projects/${projectId}/expenses`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      if (!projectRes.ok) throw new Error('Unable to load project');
-      const projectData = (await projectRes.json()) as { data: ProjectItem };
-      const tasksData = (await tasksRes.json()) as { data: TaskItem[] };
-      const expensesData = (await expensesRes.json()) as { data: ExpenseItem[] };
-      setProject(projectData.data);
-      setTasks(tasksData.data);
-      setExpenses(expensesData.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load project');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, [projectId]);
+  const { project, tasks, expenses, lineItems, vendors, categories, loading, error, setTasks, setExpenses } =
+    useProjectDetail(projectId, token ?? '');
 
   if (loading) {
     return (
@@ -104,7 +74,7 @@ const ProjectDetailScreen = () => {
         </Text>
       </View>
 
-      {/* Tab bar — horizontal scroll so all 5 tabs fit on narrow screens */}
+      {/* Tab bar */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -143,9 +113,11 @@ const ProjectDetailScreen = () => {
           <TasksTab project={project} tasks={tasks} setTasks={setTasks} />
         )}
         {activeTab === 'expenses' && (
-          <ExpensesTab project={project} expenses={expenses} setExpenses={setExpenses} />
+          <ExpensesTab project={project} expenses={expenses} setExpenses={setExpenses} vendors={vendors} categories={categories} lineItems={lineItems} />
         )}
-        {activeTab === 'budget' && <BudgetTab project={project} />}
+        {activeTab === 'budget' && (
+          <BudgetTab project={project} lineItems={lineItems} expenses={expenses} categories={categories} />
+        )}
         {activeTab === 'documents' && <DocumentsTab project={project} />}
       </View>
     </SafeAreaView>
