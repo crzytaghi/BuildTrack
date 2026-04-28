@@ -97,55 +97,55 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
             </View>
           )}
 
-          {/* Vendor picker */}
-          <TouchableOpacity onPress={() => setOpenPicker('vendor')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm }}>
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Vendor *</Text>
+          <TouchableOpacity onPress={() => setOpenPicker('vendor')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.md }}>
             <Text style={{ color: form.vendorId ? colors.textPrimary : colors.textMuted }}>
-              {form.vendorId ? vendorMap[form.vendorId] : 'Select vendor *'}
+              {form.vendorId ? vendorMap[form.vendorId] : 'Select vendor'}
             </Text>
           </TouchableOpacity>
 
-          {/* Description */}
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Description *</Text>
           <TextInput
             value={form.description}
             onChangeText={(v) => setForm((p) => ({ ...p, description: v }))}
-            placeholder="Description *"
+            placeholder="Enter description"
             placeholderTextColor={colors.textMuted}
-            style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm }}
+            style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.md }}
           />
 
-          {/* Amount */}
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Amount *</Text>
           <TextInput
             value={form.amount}
             onChangeText={(v) => setForm((p) => ({ ...p, amount: v }))}
-            placeholder="Amount *"
+            placeholder="0.00"
             placeholderTextColor={colors.textMuted}
             keyboardType="numeric"
-            style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm }}
+            style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.md }}
           />
 
-          {/* Category picker */}
-          <TouchableOpacity onPress={() => setOpenPicker('category')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm }}>
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Category *</Text>
+          <TouchableOpacity onPress={() => setOpenPicker('category')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.md }}>
             <Text style={{ color: form.categoryId ? colors.textPrimary : colors.textMuted }}>
-              {form.categoryId ? categories.find((c) => c.id === form.categoryId)?.name : 'Select category *'}
+              {form.categoryId ? categories.find((c) => c.id === form.categoryId)?.name : 'Select category'}
             </Text>
           </TouchableOpacity>
 
-          {/* Date */}
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Date *</Text>
           <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
             <TextInput
               value={form.expenseDate}
-              placeholder="Expense date *"
+              placeholder="YYYY-MM-DD"
               placeholderTextColor={colors.textMuted}
               editable={false}
               pointerEvents="none"
-              style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.sm }}
+              style={{ backgroundColor: colors.inputBg, color: colors.textPrimary, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.md }}
             />
           </TouchableOpacity>
 
-          {/* Line item picker */}
-          <TouchableOpacity onPress={() => setOpenPicker('lineItem')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, marginBottom: spacing.md }}>
+          <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginBottom: spacing.xs }}>Line Item</Text>
+          <TouchableOpacity onPress={() => setOpenPicker('lineItem')} style={{ backgroundColor: colors.inputBg, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderSubtle, marginBottom: spacing.lg }}>
             <Text style={{ color: form.lineItemId ? colors.textPrimary : colors.textMuted }}>
-              {form.lineItemId ? lineItems.find((li) => li.id === form.lineItemId)?.description : 'Link to line item (optional)'}
+              {form.lineItemId ? lineItems.find((li) => li.id === form.lineItemId)?.description : 'None (optional)'}
             </Text>
           </TouchableOpacity>
 
