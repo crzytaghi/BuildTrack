@@ -11,9 +11,6 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterFramework": [
-      "@testing-library/react-native/extend-expect"
-    ],
     "moduleNameMapper": {
       "^expo/src/winter/(.*)$": "<rootDir>/__mocks__/expo-winter.js"
     }

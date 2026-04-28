@@ -1,0 +1,32 @@
+# Sprint 2 E2E — Live Dashboard
+# Run with: maestro test .maestro/02_dashboard.yaml
+
+appId: com.buildtrack.mobile
+---
+- launchApp
+- assertVisible: "BuildTrack"
+- tapOn: "Login"
+
+# Login
+- tapOn:
+    placeholder: "Email"
+- inputText: "seed@buildtrack.dev"
+- tapOn:
+    placeholder: "Password"
+- inputText: "securepass1"
+- tapOn:
+    text: "Login"
+    index: 1
+
+# Dashboard should be visible with live data
+- assertVisible: "Dashboard"
+- assertVisible: "Overview"
+- assertVisible: "Total Budget"
+- assertVisible: "Actual Spend"
+- assertVisible: "Variance"
+- assertVisible: "Active Projects"
+- assertVisible: "Tasks Due Soon"
+- assertVisible: "Recent Expenses"
+
+# Values should NOT be stub dashes
+- assertNotVisible: "—"
