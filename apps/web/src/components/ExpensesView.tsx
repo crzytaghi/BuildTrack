@@ -269,7 +269,7 @@ const ExpensesView = ({
                   {expenses.length === 0 ? (
                     <div className="text-slate-400">No expenses found.</div>
                   ) : (
-                    expenses.map((expense) => {
+                    expenses.slice().sort((a, b) => b.expenseDate.localeCompare(a.expenseDate)).map((expense) => {
                       const projectName = projects.find((p) => p.id === expense.projectId)?.name ?? 'Unknown';
                       const categoryName = categories.find((c) => c.id === expense.categoryId)?.name ?? expense.categoryId;
                       const vendorName = vendors.find((v) => v.id === expense.vendorId)?.name ?? expense.vendorId;

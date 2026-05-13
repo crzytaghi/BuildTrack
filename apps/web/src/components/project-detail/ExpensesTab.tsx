@@ -216,7 +216,7 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
           ) : (
             <>
               <div className="divide-y divide-slate-800 text-sm">
-                {expenses.map((expense) => {
+                {expenses.slice().sort((a, b) => b.expenseDate.localeCompare(a.expenseDate)).map((expense) => {
                   if (editingId === expense.id) {
                     return (
                       <div key={expense.id} className="py-3">
