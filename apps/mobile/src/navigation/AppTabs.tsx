@@ -1,16 +1,16 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
-import DashboardScreen from '../screens/DashboardScreen';
+import DashboardStack from './DashboardStack';
 import ProjectsStack from './ProjectsStack';
+import ExpensesScreen from '../screens/ExpensesScreen';
 import VendorsScreen from '../screens/VendorsScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 
 export type AppTabParamList = {
   Dashboard: undefined;
   Projects: undefined;
+  Expenses: undefined;
   Vendors: undefined;
-  Settings: undefined;
 };
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
@@ -20,8 +20,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 const TAB_ICONS: Record<string, { focused: IoniconName; outline: IoniconName }> = {
   Dashboard: { focused: 'grid', outline: 'grid-outline' },
   Projects: { focused: 'folder', outline: 'folder-outline' },
+  Expenses: { focused: 'receipt', outline: 'receipt-outline' },
   Vendors: { focused: 'people', outline: 'people-outline' },
-  Settings: { focused: 'settings', outline: 'settings-outline' },
 };
 
 const AppTabs = () => (
@@ -43,10 +43,10 @@ const AppTabs = () => (
       },
     })}
   >
-    <Tab.Screen name="Dashboard" component={DashboardScreen} />
+    <Tab.Screen name="Dashboard" component={DashboardStack} />
     <Tab.Screen name="Projects" component={ProjectsStack} />
+    <Tab.Screen name="Expenses" component={ExpensesScreen} />
     <Tab.Screen name="Vendors" component={VendorsScreen} />
-    <Tab.Screen name="Settings" component={SettingsScreen} />
   </Tab.Navigator>
 );
 

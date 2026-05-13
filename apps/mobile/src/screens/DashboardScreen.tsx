@@ -1,9 +1,15 @@
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { useDashboard } from '../hooks/useDashboard';
 import { colors, spacing, radius, fontSize } from '../theme';
 import type { DashboardKpi, RecentExpense, TaskDueSoon } from '../hooks/useDashboard';
+import type { DashboardStackParamList } from '../navigation/DashboardStack';
+
+type Nav = NativeStackNavigationProp<DashboardStackParamList, 'DashboardMain'>;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -55,6 +61,7 @@ const ExpenseRow = ({ expense }: { expense: RecentExpense }) => (
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 const DashboardScreen = () => {
+  const navigation = useNavigation<Nav>();
   const { companyName, token } = useAuth();
   const { data, loading, refreshing, error, refresh } = useDashboard(token ?? '');
 
@@ -73,13 +80,18 @@ const DashboardScreen = () => {
         }
       >
         {/* Header */}
-        <View style={{ marginBottom: spacing.xl }}>
-          <Text style={{ color: colors.textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>
-            Dashboard
-          </Text>
-          <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
-            {companyName ?? 'My Company'}
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.xl }}>
+          <View>
+            <Text style={{ color: colors.textPrimary, fontSize: fontSize.xl, fontWeight: '700' }}>
+              Dashboard
+            </Text>
+            <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
+              {companyName ?? 'My Company'}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ padding: spacing.xs }}>
+            <Ionicons name="settings-outline" size={22} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {/* Error banner */}

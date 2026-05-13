@@ -1,14 +1,19 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { colors, spacing, radius, fontSize } from '../theme';
 
 const SettingsScreen = () => {
+  const navigation = useNavigation();
   const { user, companyName, handleLogout } = useAuth();
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.pageBg }} edges={['top']}>
       <View style={{ padding: spacing.xl }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: spacing.md }}>
+          <Text style={{ color: colors.link, fontSize: fontSize.sm }}>← Dashboard</Text>
+        </TouchableOpacity>
         <Text style={{ color: colors.textPrimary, fontSize: fontSize.xl, fontWeight: '700', marginBottom: spacing.xl }}>
           Settings
         </Text>

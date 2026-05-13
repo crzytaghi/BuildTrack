@@ -1,0 +1,37 @@
+# Sprint 4 E2E — Global Expenses + Vendors
+# Run with: maestro test .maestro/04_expenses_vendors.yaml
+
+appId: com.buildtrack.mobile
+---
+- launchApp
+- assertVisible: "BuildTrack"
+- tapOn: "Login"
+
+# Login
+- tapOn:
+    placeholder: "Email"
+- inputText: "seed@buildtrack.dev"
+- tapOn:
+    placeholder: "Password"
+- inputText: "securepass1"
+- tapOn:
+    text: "Login"
+    index: 1
+
+# Expenses tab
+- tapOn: "Expenses"
+- assertVisible: "Expenses"
+- assertVisible: "All Projects"
+
+# Vendors tab
+- tapOn: "Vendors"
+- assertVisible: "Vendors"
+
+# Dashboard gear icon leads to Settings
+- tapOn: "Dashboard"
+- assertVisible: "Dashboard"
+- tapOn:
+    id: "settings-outline"
+- assertVisible: "Settings"
+- tapOn: "← Dashboard"
+- assertVisible: "Dashboard"
