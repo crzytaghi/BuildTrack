@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FlatList, Modal, Platform, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../../context/AuthContext';
 import { getApiBase } from '../../lib/api';
@@ -74,7 +74,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
   ];
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {!showForm && (
         <View style={{ padding: spacing.xl, paddingBottom: 0 }}>
           <TouchableOpacity
@@ -87,7 +87,12 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
       )}
 
       {showForm && (
-        <View style={{ backgroundColor: colors.cardBg, margin: spacing.xl, padding: spacing.lg, borderRadius: radius.lg }}>
+        <ScrollView
+          style={{ backgroundColor: colors.cardBg, margin: spacing.xl, borderRadius: radius.lg }}
+          contentContainerStyle={{ padding: spacing.lg }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={{ color: colors.textLabel, fontWeight: '600', marginBottom: spacing.md }}>
             {editingId ? 'Edit Expense' : 'New Expense'}
           </Text>
@@ -157,7 +162,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
               <Text style={{ color: colors.primaryText, fontWeight: '700' }}>{editingId ? 'Update' : 'Create'}</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       )}
 
       <FlatList
@@ -224,7 +229,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
       {showDatePicker && Platform.OS !== 'ios' && (
         <DateTimePicker value={parseDate(form.expenseDate)} mode="date" display="default" onChange={(e, d) => { setShowDatePicker(false); if (e.type !== 'dismissed' && d) setForm((p) => ({ ...p, expenseDate: formatDate(d) })); }} />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
