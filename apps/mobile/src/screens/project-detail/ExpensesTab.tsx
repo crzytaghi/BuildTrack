@@ -161,7 +161,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
       )}
 
       <FlatList
-        data={expenses}
+        data={expenses.slice().sort((a, b) => b.expenseDate.localeCompare(a.expenseDate))}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ padding: spacing.xl, paddingTop: showForm ? 0 : spacing.md }}
         showsVerticalScrollIndicator={false}
