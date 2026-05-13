@@ -3,7 +3,7 @@ import { getApiBase } from '../../lib/api';
 import type { BudgetLineItem, Category, ExpenseItem } from '../../types/projects';
 
 const API_BASE = getApiBase();
-const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const errorClass = 'ring-1 ring-red-500/60 border border-red-500/60';
 
 type ExpenseForm = { vendorId: string; description: string; amount: string; categoryId: string; expenseDate: string; lineItemId: string };

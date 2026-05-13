@@ -1,6 +1,7 @@
 import type { ExpenseItem, ProjectItem, TaskItem } from '../../types/projects';
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmtCents = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const taskStatusBadge: Record<string, string> = {
   todo:        'bg-slate-700 text-slate-300',
@@ -133,7 +134,7 @@ const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, 
                     {vendors.find((v) => v.id === expense.vendorId)?.name ?? '—'}
                   </div>
                   <div className="text-xs text-slate-400">
-                    {expense.description ?? expense.categoryId} • {expense.expenseDate} • {fmt.format(expense.amount)}
+                    {expense.description ?? expense.categoryId} • {expense.expenseDate} • {fmtCents.format(expense.amount)}
                   </div>
                 </div>
               ))

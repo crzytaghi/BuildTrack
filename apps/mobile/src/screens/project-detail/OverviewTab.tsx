@@ -101,7 +101,7 @@ const OverviewTab = ({ project, tasks, expenses, onNavigateToTab }: Props) => {
               {expense.description}
             </Text>
             <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginLeft: spacing.sm }}>
-              ${Number(expense.amount).toLocaleString()}
+              ${Number(expense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Text>
           </View>
         ))}

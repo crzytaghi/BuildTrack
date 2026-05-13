@@ -177,7 +177,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
               <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1, marginRight: spacing.sm }} numberOfLines={1}>
                 {item.description}
               </Text>
-              <Text style={{ color: colors.warningText, fontWeight: '700' }}>${Number(item.amount).toLocaleString()}</Text>
+              <Text style={{ color: colors.warningText, fontWeight: '700' }}>${Number(item.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
             </View>
             <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
               {vendorMap[item.vendorId] ?? 'Unknown vendor'} · {item.expenseDate}
