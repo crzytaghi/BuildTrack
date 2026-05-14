@@ -192,14 +192,21 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
             <div className="text-sm font-semibold text-slate-200">Expenses</div>
             <div className="text-xs text-slate-500">Record and track costs for this project.</div>
           </div>
-          {!createOpen && !editingId && (
-            <button
-              className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
-              onClick={() => { setCreateOpen(true); setEditingId(null); }}
-            >
-              Add Expense
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {expenses.length > 0 && (
+              <div className="text-sm text-slate-400">
+                Total: <span className="font-semibold text-slate-100">{fmt.format(totalSpend)}</span>
+              </div>
+            )}
+            {!createOpen && !editingId && (
+              <button
+                className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
+                onClick={() => { setCreateOpen(true); setEditingId(null); }}
+              >
+                Add Expense
+              </button>
+            )}
+          </div>
         </div>
 
         {/* New expense form — top of list */}
@@ -253,13 +260,6 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
                   );
                 })}
               </div>
-              {expenses.length > 0 && (
-                <div className="mt-4 flex justify-end border-t border-slate-800 pt-4">
-                  <div className="text-sm text-slate-400">
-                    Total: <span className="font-semibold text-slate-100">{fmt.format(totalSpend)}</span>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
