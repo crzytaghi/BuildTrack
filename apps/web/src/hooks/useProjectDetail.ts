@@ -14,11 +14,12 @@ export interface ProjectDetailData {
   categories: Category[];
   loading:    boolean;
   error:      string | null;
-  setProject:   React.Dispatch<React.SetStateAction<ProjectItem | null>>;
-  setTasks:     React.Dispatch<React.SetStateAction<TaskItem[]>>;
-  setExpenses:  React.Dispatch<React.SetStateAction<ExpenseItem[]>>;
-  setLineItems: React.Dispatch<React.SetStateAction<BudgetLineItem[]>>;
-  setQuotes:    React.Dispatch<React.SetStateAction<QuoteItem[]>>;
+  setProject:    React.Dispatch<React.SetStateAction<ProjectItem | null>>;
+  setTasks:      React.Dispatch<React.SetStateAction<TaskItem[]>>;
+  setExpenses:   React.Dispatch<React.SetStateAction<ExpenseItem[]>>;
+  setLineItems:  React.Dispatch<React.SetStateAction<BudgetLineItem[]>>;
+  setQuotes:     React.Dispatch<React.SetStateAction<QuoteItem[]>>;
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
 }
 
 export const useProjectDetail = (projectId: string, token: string): ProjectDetailData => {
@@ -75,5 +76,5 @@ export const useProjectDetail = (projectId: string, token: string): ProjectDetai
     })();
   }, [projectId, token]);
 
-  return { project, tasks, expenses, lineItems, quotes, vendors, categories, loading, error, setProject, setTasks, setExpenses, setLineItems, setQuotes };
+  return { project, tasks, expenses, lineItems, quotes, vendors, categories, loading, error, setProject, setTasks, setExpenses, setLineItems, setQuotes, setCategories };
 };

@@ -27,20 +27,7 @@ type Props = {
   onEditExpense: (expense: ExpenseItem) => void;
   onRequestDeleteExpense: (id: string | null) => void;
   onDeleteExpense: (id: string) => void;
-  // category management
-  categoryCreateOpen: boolean;
-  categorySubmitAttempted: boolean;
-  editingCategoryId: string | null;
-  deletingCategoryId: string | null;
-  categoryForm: { name: string };
-  categoryError: string | null;
-  onCreateCategory: () => void;
-  onCategoryFormChange: (form: { name: string }) => void;
-  onSubmitCategory: () => void;
-  onCancelCategoryEdit: () => void;
-  onEditCategory: (category: Category) => void;
-  onRequestDeleteCategory: (id: string | null) => void;
-  onDeleteCategory: (id: string) => void;
+  onManageCategories: () => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -67,19 +54,7 @@ const ExpensesView = ({
   onEditExpense,
   onRequestDeleteExpense,
   onDeleteExpense,
-  categoryCreateOpen,
-  categorySubmitAttempted,
-  editingCategoryId,
-  deletingCategoryId,
-  categoryForm,
-  categoryError,
-  onCreateCategory,
-  onCategoryFormChange,
-  onSubmitCategory,
-  onCancelCategoryEdit,
-  onEditCategory,
-  onRequestDeleteCategory,
-  onDeleteCategory,
+  onManageCategories,
 }: Props) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -213,16 +188,25 @@ const ExpensesView = ({
                         step="0.01"
                         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingAmount ? errorClass : ''}`}
                       />
-                      <select
-                        value={form.categoryId}
-                        onChange={(e) => onFormChange({ ...form, categoryId: e.target.value })}
-                        className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingCategory ? errorClass : ''}`}
-                      >
-                        <option value="">Select category</option>
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                      <div>
+                        <select
+                          value={form.categoryId}
+                          onChange={(e) => onFormChange({ ...form, categoryId: e.target.value })}
+                          className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingCategory ? errorClass : ''}`}
+                        >
+                          <option value="">Select category</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={onManageCategories}
+                          className="mt-1 text-xs text-slate-500 hover:text-slate-300"
+                        >
+                          Manage categories
+                        </button>
+                      </div>
                       <select
                         value={form.lineItemId}
                         onChange={(e) => onFormChange({ ...form, lineItemId: e.target.value })}
@@ -248,12 +232,6 @@ const ExpensesView = ({
                     >
                       {editingExpenseId ? 'Update Expense' : 'Add Expense'}
                     </button>
-                    <p className="mt-3 text-xs text-slate-500">
-                      Need a new line item?{' '}
-                      <a href="/budget" className="text-slate-400 underline underline-offset-2 hover:text-slate-200">
-                        Manage them on the Budget page.
-                      </a>
-                    </p>
                   </>
                 );
               })()}
@@ -336,101 +314,6 @@ const ExpensesView = ({
                   </div>
                 )}
               </>
-            )}
-          </div>
-        </div>
-      </section>
-      <section className="px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-sm font-semibold text-slate-200">Categories</div>
-              <div className="text-xs text-slate-500">Manage expense and budget categories.</div>
-            </div>
-            {!categoryCreateOpen && !editingCategoryId && (
-              <button
-                className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
-                onClick={onCreateCategory}
-              >
-                Add Category
-              </button>
-            )}
-          </div>
-
-          {(categoryCreateOpen || editingCategoryId) && (
-            <div className="mt-4 rounded-2xl border border-slate-800 bg-surface/60 p-5">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-200">
-                  {editingCategoryId ? 'Edit Category' : 'New Category'}
-                </div>
-                <button className="text-xs uppercase tracking-wide text-slate-400" onClick={onCancelCategoryEdit}>
-                  Cancel
-                </button>
-              </div>
-              {categoryError && (
-                <div className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-                  {categoryError}
-                </div>
-              )}
-              <div className="mt-4 flex gap-3">
-                <input
-                  value={categoryForm.name}
-                  onChange={(e) => onCategoryFormChange({ name: e.target.value })}
-                  placeholder="Category name"
-                  className={`flex-1 rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 ${categorySubmitAttempted && !categoryForm.name.trim() ? 'border border-red-500/60 ring-red-500/60' : ''}`}
-                />
-                <button
-                  className="rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-slate-950"
-                  onClick={onSubmitCategory}
-                >
-                  {editingCategoryId ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 divide-y divide-slate-800 text-sm">
-            {categories.length === 0 ? (
-              <div className="text-slate-400">No categories yet.</div>
-            ) : (
-              categories.map((category) => (
-                <div key={category.id} className="flex items-center justify-between py-3">
-                  <div className="font-medium text-slate-100">{category.name}</div>
-                  <div className="flex items-center gap-2">
-                    {deletingCategoryId === category.id ? (
-                      <>
-                        <button
-                          className="rounded-full border border-red-500/40 bg-red-500/10 px-3 py-1 text-xs text-red-300"
-                          onClick={() => onDeleteCategory(category.id)}
-                        >
-                          Confirm delete
-                        </button>
-                        <button
-                          className="text-xs text-slate-400"
-                          onClick={() => onRequestDeleteCategory(null)}
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                          onClick={() => onEditCategory(category)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="rounded-full border border-red-900 px-3 py-1 text-xs text-red-400"
-                          onClick={() => onRequestDeleteCategory(category.id)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))
             )}
           </div>
         </div>

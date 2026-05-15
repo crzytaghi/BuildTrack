@@ -19,6 +19,7 @@ type FormProps = {
   vendors:            { id: string; name: string }[];
   categories:         Category[];
   lineItems:          BudgetLineItem[];
+  onManageCategories: () => void;
   onSubmit:           () => void;
   onCancel:           () => void;
   onRequestDelete:    () => void;
@@ -26,7 +27,7 @@ type FormProps = {
   onConfirmDelete:    () => void;
 };
 
-const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletingId, vendors, categories, lineItems, onSubmit, onCancel, onRequestDelete, onCancelDelete, onConfirmDelete }: FormProps) => (
+const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletingId, vendors, categories, lineItems, onManageCategories, onSubmit, onCancel, onRequestDelete, onCancelDelete, onConfirmDelete }: FormProps) => (
   <div className="rounded-2xl border border-slate-800 bg-surface/60 p-5">
     <div className="flex items-center justify-between">
       <div className="text-sm font-semibold text-slate-200">{isEditing ? 'Edit Expense' : 'New Expense'}</div>
@@ -58,14 +59,23 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         min="0" step="0.01"
         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.amount ? errorClass : ''}`}
       />
-      <select
-        value={form.categoryId}
-        onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-        className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.categoryId ? errorClass : ''}`}
-      >
-        <option value="">Select category</option>
-        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-      </select>
+      <div>
+        <select
+          value={form.categoryId}
+          onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+          className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.categoryId ? errorClass : ''}`}
+        >
+          <option value="">Select category</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        <button
+          type="button"
+          onClick={onManageCategories}
+          className="mt-1 text-xs text-slate-500 hover:text-slate-300"
+        >
+          Manage categories
+        </button>
+      </div>
       <select
         value={form.lineItemId}
         onChange={(e) => setForm((p) => ({ ...p, lineItemId: e.target.value }))}
@@ -105,16 +115,17 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
 );
 
 type Props = {
-  expenses:    ExpenseItem[];
-  setExpenses: React.Dispatch<React.SetStateAction<ExpenseItem[]>>;
-  lineItems:   BudgetLineItem[];
-  vendors:     { id: string; name: string }[];
-  categories:  Category[];
-  projectId:   string;
-  token:       string;
+  expenses:           ExpenseItem[];
+  setExpenses:        React.Dispatch<React.SetStateAction<ExpenseItem[]>>;
+  lineItems:          BudgetLineItem[];
+  vendors:            { id: string; name: string }[];
+  categories:         Category[];
+  projectId:          string;
+  token:              string;
+  onManageCategories: () => void;
 };
 
-const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, projectId, token }: Props) => {
+const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, projectId, token, onManageCategories }: Props) => {
   const [createOpen,       setCreateOpen]       = useState(false);
   const [submitAttempted,  setSubmitAttempted]  = useState(false);
   const [editingId,        setEditingId]        = useState<string | null>(null);
@@ -177,6 +188,7 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
   const sharedFormProps = {
     form, setForm, submitAttempted, error,
     vendors, categories, lineItems,
+    onManageCategories,
     onSubmit: handleSubmit,
     onCancel: closeForm,
     onRequestDelete: () => setDeletingId(editingId),

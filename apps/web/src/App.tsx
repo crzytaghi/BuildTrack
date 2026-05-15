@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, useNavigate, useParams } from 'react-rout
 import AuthCard from './components/AuthCard';
 import AuthLogin from './components/AuthLogin';
 import AuthSignup from './components/AuthSignup';
+import CategoryModal from './components/CategoryModal';
 import CompanySetupScreen from './components/CompanySetupScreen';
 import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
@@ -39,6 +40,7 @@ const AppShell = () => {
   const categories = useCategories(auth.token, auth.user);
   const vendors = useVendors(auth.token, auth.user);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   // — Auth loading —
   if (auth.authLoading) {
@@ -285,19 +287,7 @@ const AppShell = () => {
                   deletingExpenseId={expenses.deletingExpenseId}
                   onRequestDeleteExpense={expenses.setDeletingExpenseId}
                   onDeleteExpense={expenses.handleExpenseDelete}
-                  categoryCreateOpen={categories.categoryCreateOpen}
-                  categorySubmitAttempted={categories.categorySubmitAttempted}
-                  editingCategoryId={categories.editingCategoryId}
-                  deletingCategoryId={categories.deletingCategoryId}
-                  categoryForm={categories.categoryForm}
-                  categoryError={categories.categoryError}
-                  onCreateCategory={categories.onCreateCategory}
-                  onCategoryFormChange={categories.setCategoryForm}
-                  onSubmitCategory={categories.handleCategorySubmit}
-                  onCancelCategoryEdit={categories.closeCategoryForm}
-                  onEditCategory={categories.onEditCategory}
-                  onRequestDeleteCategory={categories.setDeletingCategoryId}
-                  onDeleteCategory={categories.handleCategoryDelete}
+                  onManageCategories={() => setCategoryModalOpen(true)}
                 />
               }
             />
@@ -331,6 +321,13 @@ const AppShell = () => {
           </Routes>
         </main>
       </div>
+      <CategoryModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        token={auth.token ?? ''}
+        categories={categories.categories}
+        onCategoriesChange={categories.setCategories}
+      />
     </div>
   );
 };

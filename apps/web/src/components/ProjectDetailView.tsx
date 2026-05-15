@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useProjectDetail } from '../hooks/useProjectDetail';
 import { useDocumentManager } from '../hooks/useDocumentManager';
+import CategoryModal from './CategoryModal';
 import OverviewTab  from './project-detail/OverviewTab';
 import BudgetTab    from './project-detail/BudgetTab';
 import TasksTab     from './project-detail/TasksTab';
@@ -31,8 +32,9 @@ type Props = {
 };
 
 const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDeleteProject, onDeleteProject }: Props) => {
-  const [activeTab,    setActiveTab]    = useState<TabType>('overview');
-  const [tabMenuOpen,  setTabMenuOpen]  = useState(false);
+  const [activeTab,         setActiveTab]         = useState<TabType>('overview');
+  const [tabMenuOpen,       setTabMenuOpen]       = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
   const {
     project, setProject,
@@ -40,7 +42,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
     expenses, setExpenses,
     lineItems, setLineItems,
     quotes,   setQuotes,
-    vendors, categories,
+    vendors, categories, setCategories,
     loading, error,
   } = useProjectDetail(projectId, token);
 
@@ -162,6 +164,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
           categories={categories}
           token={token}
           projectId={projectId}
+          onManageCategories={() => setCategoryModalOpen(true)}
         />
       )}
       {activeTab === 'tasks' && (
@@ -181,6 +184,7 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
           categories={categories}
           projectId={projectId}
           token={token}
+          onManageCategories={() => setCategoryModalOpen(true)}
         />
       )}
       {activeTab === 'settings' && (
@@ -196,6 +200,13 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
       {activeTab === 'documents' && (
         <DocumentsTab {...docManager} />
       )}
+      <CategoryModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        token={token}
+        categories={categories}
+        onCategoriesChange={setCategories}
+      />
     </>
   );
 };

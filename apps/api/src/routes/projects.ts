@@ -275,7 +275,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     const expenseCount = await prisma.expense.count({ where: { categoryId: id } });
     const lineItemCount = await prisma.budgetLineItem.count({ where: { categoryId: id } });
     if (expenseCount > 0 || lineItemCount > 0) {
-      return reply.code(409).send({ error: 'Category is in use and cannot be deleted' });
+      return reply.code(409).send({ error: 'Category is in use', expenseCount, lineItemCount });
     }
     await prisma.category.delete({ where: { id } });
     reply.code(204).send();

@@ -7,19 +7,20 @@ const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD',
 const errorClass = 'ring-1 ring-red-500/60 border border-red-500/60';
 
 type Props = {
-  project:          ProjectItem;
-  lineItems:        BudgetLineItem[];
-  setLineItems:     React.Dispatch<React.SetStateAction<BudgetLineItem[]>>;
-  quotes:           QuoteItem[];
-  setQuotes:        React.Dispatch<React.SetStateAction<QuoteItem[]>>;
-  expenses:         ExpenseItem[];
-  vendors:          { id: string; name: string }[];
-  categories:       Category[];
-  token:            string;
-  projectId:        string;
+  project:              ProjectItem;
+  lineItems:            BudgetLineItem[];
+  setLineItems:         React.Dispatch<React.SetStateAction<BudgetLineItem[]>>;
+  quotes:               QuoteItem[];
+  setQuotes:            React.Dispatch<React.SetStateAction<QuoteItem[]>>;
+  expenses:             ExpenseItem[];
+  vendors:              { id: string; name: string }[];
+  categories:           Category[];
+  token:                string;
+  projectId:            string;
+  onManageCategories:   () => void;
 };
 
-const BudgetTab = ({ project, lineItems, setLineItems, quotes, setQuotes, expenses, vendors, categories, token, projectId }: Props) => {
+const BudgetTab = ({ project, lineItems, setLineItems, quotes, setQuotes, expenses, vendors, categories, token, projectId, onManageCategories }: Props) => {
   // Line item form state
   const [selectedLineItemId,     setSelectedLineItemId]     = useState<string | null>(null);
   const [lineItemCreateOpen,     setLineItemCreateOpen]     = useState(false);
@@ -178,14 +179,23 @@ const BudgetTab = ({ project, lineItems, setLineItems, quotes, setQuotes, expens
               </div>
             )}
             <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <select
-                value={lineItemForm.categoryId}
-                onChange={(e) => setLineItemForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-                className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${lineItemSubmitAttempted && !lineItemForm.categoryId ? errorClass : ''}`}
-              >
-                <option value="">Select category</option>
-                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div>
+                <select
+                  value={lineItemForm.categoryId}
+                  onChange={(e) => setLineItemForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                  className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${lineItemSubmitAttempted && !lineItemForm.categoryId ? errorClass : ''}`}
+                >
+                  <option value="">Select category</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={onManageCategories}
+                  className="mt-1 text-xs text-slate-500 hover:text-slate-300"
+                >
+                  Manage categories
+                </button>
+              </div>
               <input
                 value={lineItemForm.description}
                 onChange={(e) => setLineItemForm((prev) => ({ ...prev, description: e.target.value }))}
