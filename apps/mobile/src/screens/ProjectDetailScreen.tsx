@@ -33,7 +33,7 @@ const ProjectDetailScreen = () => {
   const { projectId } = route.params;
   const [activeTab, setActiveTab] = useState<ProjectTab>('overview');
 
-  const { project, tasks, expenses, lineItems, vendors, categories, loading, error, setTasks, setExpenses } =
+  const { project, tasks, expenses, lineItems, vendors, categories, loading, error, setTasks, setExpenses, setCategories } =
     useProjectDetail(projectId, token ?? '');
 
   if (loading) {
@@ -113,7 +113,7 @@ const ProjectDetailScreen = () => {
           <TasksTab project={project} tasks={tasks} setTasks={setTasks} />
         )}
         {activeTab === 'expenses' && (
-          <ExpensesTab project={project} expenses={expenses} setExpenses={setExpenses} vendors={vendors} categories={categories} lineItems={lineItems} />
+          <ExpensesTab project={project} expenses={expenses} setExpenses={setExpenses} vendors={vendors} categories={categories} setCategories={setCategories} lineItems={lineItems} />
         )}
         {activeTab === 'budget' && (
           <BudgetTab project={project} lineItems={lineItems} expenses={expenses} categories={categories} />

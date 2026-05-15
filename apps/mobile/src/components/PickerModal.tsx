@@ -10,9 +10,10 @@ type Props = {
   selectedId?: string;
   onSelect: (option: PickerOption) => void;
   onClose: () => void;
+  onManageCategories?: () => void;
 };
 
-const PickerModal = ({ visible, title, options, selectedId, onSelect, onClose }: Props) => (
+const PickerModal = ({ visible, title, options, selectedId, onSelect, onClose, onManageCategories }: Props) => (
   <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
     <Pressable
       style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' }}
@@ -49,6 +50,14 @@ const PickerModal = ({ visible, title, options, selectedId, onSelect, onClose }:
             </TouchableOpacity>
           )}
         />
+        {onManageCategories && (
+          <TouchableOpacity
+            onPress={() => { onClose(); onManageCategories(); }}
+            style={{ padding: spacing.lg, borderTopWidth: 1, borderTopColor: colors.border }}
+          >
+            <Text style={{ color: colors.link, fontSize: fontSize.sm, textAlign: 'center' }}>Manage Categories</Text>
+          </TouchableOpacity>
+        )}
       </Pressable>
     </Pressable>
   </Modal>

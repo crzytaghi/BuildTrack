@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { getApiBase } from '../../lib/api';
 import PickerModal from '../../components/PickerModal';
 import { colors, fontSize, radius, spacing } from '../../theme';
 import type { BudgetLineItem, Category, ExpenseItem, ProjectItem, VendorItem } from '../../types';
+import type { ProjectsStackParamList } from '../../navigation/ProjectsStack';
 
 const API_BASE = getApiBase();
 
@@ -16,19 +19,23 @@ const formatDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const parseDate = (v?: string) => { const p = new Date(v ?? ''); return Number.isNaN(p.getTime()) ? new Date() : p; };
 
+type Nav = NativeStackNavigationProp<ProjectsStackParamList>;
+
 type Props = {
   project: ProjectItem;
   expenses: ExpenseItem[];
   setExpenses: (expenses: ExpenseItem[]) => void;
   vendors: VendorItem[];
   categories: Category[];
+  setCategories: (cats: Category[]) => void;
   lineItems: BudgetLineItem[];
 };
 
 type OpenPicker = 'vendor' | 'category' | 'lineItem' | null;
 
-const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, lineItems }: Props) => {
+const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, setCategories, lineItems }: Props) => {
   const { token } = useAuth();
+  const navigation = useNavigation<Nav>();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ExpenseForm>(emptyForm);
   const [showForm, setShowForm] = useState(false);
@@ -207,6 +214,7 @@ const ExpensesTab = ({ project, expenses, setExpenses, vendors, categories, line
         selectedId={form.categoryId}
         onSelect={(opt) => setForm((p) => ({ ...p, categoryId: opt.id }))}
         onClose={() => setOpenPicker(null)}
+        onManageCategories={() => navigation.navigate('Categories', { onCategoriesChange: setCategories })}
       />
       <PickerModal
         visible={openPicker === 'lineItem'}

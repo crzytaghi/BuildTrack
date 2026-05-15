@@ -17,6 +17,7 @@ export type UseProjectDetailResult = {
   setTasks: (tasks: TaskItem[]) => void;
   setExpenses: (expenses: ExpenseItem[]) => void;
   setLineItems: (items: BudgetLineItem[]) => void;
+  setCategories: (cats: Category[]) => void;
 };
 
 export const useProjectDetail = (projectId: string, token: string): UseProjectDetailResult => {
@@ -73,6 +74,6 @@ export const useProjectDetail = (projectId: string, token: string): UseProjectDe
   return {
     project, tasks, expenses, lineItems, vendors, categories,
     loading, error, refresh,
-    setTasks, setExpenses, setLineItems,
+    setTasks, setExpenses, setLineItems, setCategories,
   };
 };
