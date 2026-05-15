@@ -59,23 +59,14 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         min="0" step="0.01"
         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.amount ? errorClass : ''}`}
       />
-      <div>
-        <select
-          value={form.categoryId}
-          onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-          className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.categoryId ? errorClass : ''}`}
-        >
-          <option value="">Select category</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <button
-          type="button"
-          onClick={onManageCategories}
-          className="mt-1 text-xs text-slate-500 hover:text-slate-300"
-        >
-          Manage categories
-        </button>
-      </div>
+      <select
+        value={form.categoryId}
+        onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+        className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.categoryId ? errorClass : ''}`}
+      >
+        <option value="">Select category</option>
+        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+      </select>
       <select
         value={form.lineItemId}
         onChange={(e) => setForm((p) => ({ ...p, lineItemId: e.target.value }))}
@@ -91,7 +82,14 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.expenseDate ? errorClass : ''}`}
       />
     </div>
-    <div className="mt-5 flex items-center gap-4">
+    <button
+      type="button"
+      onClick={onManageCategories}
+      className="mt-3 text-xs text-slate-500 hover:text-slate-300"
+    >
+      Manage categories
+    </button>
+    <div className="mt-4 flex items-center gap-4">
       <button className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950" onClick={onSubmit}>
         {isEditing ? 'Update Expense' : 'Add Expense'}
       </button>

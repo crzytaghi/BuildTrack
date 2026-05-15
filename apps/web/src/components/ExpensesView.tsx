@@ -188,25 +188,16 @@ const ExpensesView = ({
                         step="0.01"
                         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingAmount ? errorClass : ''}`}
                       />
-                      <div>
-                        <select
-                          value={form.categoryId}
-                          onChange={(e) => onFormChange({ ...form, categoryId: e.target.value })}
-                          className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingCategory ? errorClass : ''}`}
-                        >
-                          <option value="">Select category</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={onManageCategories}
-                          className="mt-1 text-xs text-slate-500 hover:text-slate-300"
-                        >
-                          Manage categories
-                        </button>
-                      </div>
+                      <select
+                        value={form.categoryId}
+                        onChange={(e) => onFormChange({ ...form, categoryId: e.target.value })}
+                        className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingCategory ? errorClass : ''}`}
+                      >
+                        <option value="">Select category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                       <select
                         value={form.lineItemId}
                         onChange={(e) => onFormChange({ ...form, lineItemId: e.target.value })}
@@ -227,7 +218,14 @@ const ExpensesView = ({
                       />
                     </div>
                     <button
-                      className="mt-5 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
+                      type="button"
+                      onClick={onManageCategories}
+                      className="mt-3 text-xs text-slate-500 hover:text-slate-300"
+                    >
+                      Manage categories
+                    </button>
+                    <button
+                      className="mt-4 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
                       onClick={onSubmit}
                     >
                       {editingExpenseId ? 'Update Expense' : 'Add Expense'}

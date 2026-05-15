@@ -179,23 +179,14 @@ const BudgetTab = ({ project, lineItems, setLineItems, quotes, setQuotes, expens
               </div>
             )}
             <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <select
-                  value={lineItemForm.categoryId}
-                  onChange={(e) => setLineItemForm((prev) => ({ ...prev, categoryId: e.target.value }))}
-                  className={`w-full rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${lineItemSubmitAttempted && !lineItemForm.categoryId ? errorClass : ''}`}
-                >
-                  <option value="">Select category</option>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <button
-                  type="button"
-                  onClick={onManageCategories}
-                  className="mt-1 text-xs text-slate-500 hover:text-slate-300"
-                >
-                  Manage categories
-                </button>
-              </div>
+              <select
+                value={lineItemForm.categoryId}
+                onChange={(e) => setLineItemForm((prev) => ({ ...prev, categoryId: e.target.value }))}
+                className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${lineItemSubmitAttempted && !lineItemForm.categoryId ? errorClass : ''}`}
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
               <input
                 value={lineItemForm.description}
                 onChange={(e) => setLineItemForm((prev) => ({ ...prev, description: e.target.value }))}
@@ -217,7 +208,14 @@ const BudgetTab = ({ project, lineItems, setLineItems, quotes, setQuotes, expens
                 className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
               />
             </div>
-            <div className="mt-5 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={onManageCategories}
+              className="mt-3 text-xs text-slate-500 hover:text-slate-300"
+            >
+              Manage categories
+            </button>
+            <div className="mt-4 flex items-center gap-4">
               <button className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950" onClick={handleLineItemSubmit}>
                 {editingLineItemId ? 'Update Line Item' : 'Add Line Item'}
               </button>
