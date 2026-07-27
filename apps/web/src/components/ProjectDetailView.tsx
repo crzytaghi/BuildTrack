@@ -9,6 +9,7 @@ import TasksTab     from './project-detail/TasksTab';
 import ExpensesTab  from './project-detail/ExpensesTab';
 import SettingsTab  from './project-detail/SettingsTab';
 import DocumentsTab from './project-detail/DocumentsTab';
+import InvoicesTab  from './project-detail/InvoicesTab';
 
 const projectStatusBadge: Record<string, string> = {
   planning:  'bg-slate-700 text-slate-300',
@@ -20,18 +21,19 @@ const projectStatusLabel: Record<string, string> = {
   planning: 'Planning', active: 'Active', on_hold: 'On Hold', completed: 'Completed',
 };
 
-type TabType = 'overview' | 'budget' | 'tasks' | 'expenses' | 'documents' | 'settings';
-const TABS: TabType[] = ['overview', 'budget', 'tasks', 'expenses', 'documents', 'settings'];
+type TabType = 'overview' | 'budget' | 'tasks' | 'expenses' | 'invoices' | 'documents' | 'settings';
+const TABS: TabType[] = ['overview', 'budget', 'tasks', 'expenses', 'invoices', 'documents', 'settings'];
 
 type Props = {
   projectId:              string;
   token:                  string;
+  companyName:            string;
   deletingProjectId:      string | null;
   onRequestDeleteProject: (id: string | null) => void;
   onDeleteProject:        (id: string) => void;
 };
 
-const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDeleteProject, onDeleteProject }: Props) => {
+const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, onRequestDeleteProject, onDeleteProject }: Props) => {
   const [activeTab,         setActiveTab]         = useState<TabType>('overview');
   const [tabMenuOpen,       setTabMenuOpen]       = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
@@ -196,6 +198,9 @@ const ProjectDetailView = ({ projectId, token, deletingProjectId, onRequestDelet
           onDeleteProject={onDeleteProject}
           token={token}
         />
+      )}
+      {activeTab === 'invoices' && (
+        <InvoicesTab project={project} token={token} companyName={companyName} />
       )}
       {activeTab === 'documents' && (
         <DocumentsTab {...docManager} />

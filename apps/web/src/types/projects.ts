@@ -1,5 +1,58 @@
 export type User = { id: string; email: string; name: string };
 
+export type Company = {
+  id: string;
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  companySetupComplete: boolean;
+};
+
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
+
+export type InvoiceLineItem = {
+  id: string;
+  invoiceId: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type InvoiceItem = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  clientName: string;
+  clientEmail: string;
+  clientAddress?: string | null;
+  dueDate?: string | null;
+  sentAt?: string | null;
+  paidAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lineItems: InvoiceLineItem[];
+  project?: { id: string; name: string };
+};
+
+export type InvoiceLineItemFormState = {
+  description: string;
+  quantity: string;
+  unitPrice: string;
+};
+
+export type InvoiceFormState = {
+  projectId: string;
+  clientName: string;
+  clientEmail: string;
+  clientAddress: string;
+  dueDate: string;
+  notes: string;
+  lineItems: InvoiceLineItemFormState[];
+};
+
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed';
 
 export type ProjectItem = {

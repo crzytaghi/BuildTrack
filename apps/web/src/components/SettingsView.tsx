@@ -3,15 +3,17 @@ import { getApiBase } from '../lib/api';
 
 const API_BASE = getApiBase();
 
+type CompanyData = { name: string; address: string | null; phone: string | null };
+
 type Props = {
   token: string;
   userEmail: string;
 };
 
 const SettingsView = ({ token, userEmail }: Props) => {
-  const [companyName, setCompanyName] = useState('');
-  const [companyNameInput, setCompanyNameInput] = useState('');
-  const [editingCompany, setEditingCompany] = useState(false);
+  const [company, setCompany] = useState<CompanyData>({ name: '', address: null, phone: null });
+  const [form, setForm] = useState({ name: '', address: '', phone: '' });
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -20,16 +22,16 @@ const SettingsView = ({ token, userEmail }: Props) => {
   useEffect(() => {
     fetch(`${API_BASE}/company/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((data: { company: { name: string } | null }) => {
-        const name = data.company?.name ?? '';
-        setCompanyName(name);
-        setCompanyNameInput(name);
+      .then((data: { company: CompanyData | null }) => {
+        const c = data.company ?? { name: '', address: null, phone: null };
+        setCompany(c);
+        setForm({ name: c.name, address: c.address ?? '', phone: c.phone ?? '' });
       })
       .finally(() => setLoading(false));
   }, [token]);
 
-  const handleSaveCompany = async () => {
-    if (!companyNameInput.trim()) return;
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
@@ -37,20 +39,30 @@ const SettingsView = ({ token, userEmail }: Props) => {
       const res = await fetch(`${API_BASE}/company/me`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: companyNameInput.trim() }),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          address: form.address.trim() || null,
+          phone: form.phone.trim() || null,
+        }),
       });
-      if (!res.ok) throw new Error('Unable to save');
-      const data = (await res.json()) as { company: { name: string } };
-      setCompanyName(data.company.name);
-      setCompanyNameInput(data.company.name);
-      setEditingCompany(false);
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as { company: CompanyData };
+      setCompany(data.company);
+      setForm({ name: data.company.name, address: data.company.address ?? '', phone: data.company.phone ?? '' });
+      setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch {
-      setSaveError('Unable to save company name.');
+      setSaveError('Unable to save company settings.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    setForm({ name: company.name, address: company.address ?? '', phone: company.phone ?? '' });
+    setSaveError(null);
   };
 
   return (
@@ -66,7 +78,18 @@ const SettingsView = ({ token, userEmail }: Props) => {
 
         {/* Company settings */}
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="text-sm font-semibold text-slate-200">Company</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-200">Company</div>
+            {!editing && !loading && (
+              <button
+                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                onClick={() => { setEditing(true); setSaveError(null); }}
+              >
+                Edit
+              </button>
+            )}
+          </div>
+
           {loading ? (
             <div className="mt-4 text-sm text-slate-400">Loading...</div>
           ) : (
@@ -75,42 +98,65 @@ const SettingsView = ({ token, userEmail }: Props) => {
                 <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{saveError}</div>
               )}
               {saveSuccess && (
-                <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Company name updated.</div>
+                <div className="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Company settings updated.</div>
               )}
-              {!editingCompany ? (
-                <div className="flex items-center justify-between">
+
+              {!editing ? (
+                <div className="space-y-4">
                   <div>
                     <div className="text-xs uppercase tracking-wide text-slate-400">Company Name</div>
-                    <div className="mt-1 text-sm text-slate-100">{companyName || '—'}</div>
+                    <div className="mt-1 text-sm text-slate-100">{company.name || '—'}</div>
                   </div>
-                  <button
-                    className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                    onClick={() => { setEditingCompany(true); setSaveError(null); }}
-                  >
-                    Edit
-                  </button>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Address</div>
+                    <div className="mt-1 text-sm text-slate-100">{company.address || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wide text-slate-400">Phone</div>
+                    <div className="mt-1 text-sm text-slate-100">{company.phone || '—'}</div>
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  <input
-                    value={companyNameInput}
-                    onChange={(e) => setCompanyNameInput(e.target.value)}
-                    placeholder="Company name"
-                    className="flex-1 rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
-                  />
-                  <button
-                    className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
-                    onClick={handleSaveCompany}
-                    disabled={saving}
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </button>
-                  <button
-                    className="text-xs uppercase tracking-wide text-slate-400"
-                    onClick={() => { setEditingCompany(false); setCompanyNameInput(companyName); setSaveError(null); }}
-                  >
-                    Cancel
-                  </button>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1">Company Name *</label>
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="Company name"
+                      className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1">Address</label>
+                    <input
+                      value={form.address}
+                      onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
+                      placeholder="123 Main St, City, State 00000"
+                      className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-wide text-slate-400 mb-1">Phone</label>
+                    <input
+                      value={form.phone}
+                      onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                      placeholder="(555) 555-5555"
+                      className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button className="text-xs uppercase tracking-wide text-slate-400" onClick={handleCancel}>
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

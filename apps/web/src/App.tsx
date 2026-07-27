@@ -8,6 +8,7 @@ import CategoryModal from './components/CategoryModal';
 import CompanySetupScreen from './components/CompanySetupScreen';
 import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
+import InvoicesView from './components/InvoicesView';
 import ExpensesView from './components/ExpensesView';
 import MobileNav from './components/MobileNav';
 import ProjectDetailView from './components/ProjectDetailView';
@@ -231,6 +232,7 @@ const AppShell = () => {
               element={
                 <ProjectDetailRoute
                   token={auth.token ?? ''}
+                  companyName={auth.companyName ?? 'Company'}
                   deletingProjectId={projects.deletingProjectId}
                   onRequestDeleteProject={projects.setDeletingProjectId}
                   onDeleteProject={projects.handleProjectDelete}
@@ -315,6 +317,16 @@ const AppShell = () => {
                 />
               }
             />
+            <Route
+              path="/invoices"
+              element={
+                <InvoicesView
+                  token={auth.token ?? ''}
+                  companyName={auth.companyName ?? 'Company'}
+                  projects={projects.projects}
+                />
+              }
+            />
             <Route path="/reports" element={<ReportsView token={auth.token ?? ''} />} />
             <Route path="/settings" element={<SettingsView token={auth.token ?? ''} userEmail={auth.user?.email ?? ''} />} />
             <Route path="/documents" element={<DocumentsView token={auth.token ?? ''} projects={projects.projects} />} />
@@ -334,11 +346,13 @@ const AppShell = () => {
 
 const ProjectDetailRoute = ({
   token,
+  companyName,
   deletingProjectId,
   onRequestDeleteProject,
   onDeleteProject,
 }: {
   token: string;
+  companyName: string;
   deletingProjectId: string | null;
   onRequestDeleteProject: (id: string | null) => void;
   onDeleteProject: (id: string) => void;
@@ -349,6 +363,7 @@ const ProjectDetailRoute = ({
     <ProjectDetailView
       projectId={id}
       token={token}
+      companyName={companyName}
       deletingProjectId={deletingProjectId}
       onRequestDeleteProject={onRequestDeleteProject}
       onDeleteProject={onDeleteProject}

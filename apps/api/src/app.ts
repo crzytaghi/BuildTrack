@@ -10,6 +10,7 @@ import projectRoutes from './routes/projects.js';
 import healthRoutes from './routes/health.js';
 import companyRoutes from './routes/company.js';
 import documentRoutes from './routes/documents.js';
+import invoiceRoutes from './routes/invoices.js';
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -74,6 +75,7 @@ export const buildApp = async () => {
   await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth, prisma });
   await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth });
   await app.register(documentRoutes, { prefix: API_PREFIX, prisma, requireAuth });
+  await app.register(invoiceRoutes, { prefix: API_PREFIX, prisma, requireAuth });
 
   return app;
 };

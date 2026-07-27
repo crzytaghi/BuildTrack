@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 
-const nav = ['Dashboard', 'Projects', 'Tasks', 'Expenses', 'Vendors', 'Documents', 'Reports', 'Settings'];
+const nav = ['Dashboard', 'Projects', 'Tasks', 'Expenses', 'Vendors', 'Invoices', 'Documents', 'Reports', 'Settings'];
 
 type Props = {
   onLogout: () => void;

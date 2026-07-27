@@ -10,6 +10,8 @@ datasource db {
 model Company {
   id                   String     @id @default(uuid())
   name                 String
+  address              String?
+  phone                String?
   timezone             String?
   companySetupComplete Boolean    @default(false)
   users                User[]
@@ -17,6 +19,7 @@ model Company {
   vendors              Vendor[]
   categories           Category[]
   documents            Document[]
+  invoices             Invoice[]
 }
 
 model User {
@@ -53,6 +56,7 @@ model Project {
   lineItems   BudgetLineItem[]
   quotes      Quote[]
   documents   Document[]
+  invoices    Invoice[]
 }
 
 model Document {
@@ -144,4 +148,33 @@ model Quote {
   lineItem    BudgetLineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   vendor      Vendor         @relation(fields: [vendorId], references: [id])
+}
+
+model Invoice {
+  id            String          @id
+  companyId     String
+  projectId     String
+  invoiceNumber String
+  status        String          @default("draft")
+  clientName    String
+  clientEmail   String
+  clientAddress String?
+  dueDate       String?
+  sentAt        String?
+  paidAt        String?
+  notes         String?
+  createdAt     String
+  updatedAt     String
+  company       Company         @relation(fields: [companyId], references: [id])
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lineItems     InvoiceLineItem[]
+}
+
+model InvoiceLineItem {
+  id          String  @id
+  invoiceId   String
+  description String
+  quantity    Float
+  unitPrice   Float
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }

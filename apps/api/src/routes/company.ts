@@ -18,6 +18,8 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
       company: {
         id: company.id,
         name: company.name,
+        address: company.address,
+        phone: company.phone,
         companySetupComplete: company.companySetupComplete,
       },
     };
@@ -25,9 +27,21 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
 
   app.patch('/company/me', { preHandler: requireAuth }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
-    const body = z.object({ name: z.string().min(1) }).parse(req.body);
-    const updated = await prisma.company.update({ where: { id: companyId }, data: { name: body.name } });
-    return reply.send({ company: { id: updated.id, name: updated.name, companySetupComplete: updated.companySetupComplete } });
+    const body = z.object({
+      name: z.string().min(1).optional(),
+      address: z.string().optional(),
+      phone: z.string().optional(),
+    }).parse(req.body);
+    const updated = await prisma.company.update({ where: { id: companyId }, data: body });
+    return reply.send({
+      company: {
+        id: updated.id,
+        name: updated.name,
+        address: updated.address,
+        phone: updated.phone,
+        companySetupComplete: updated.companySetupComplete,
+      },
+    });
   });
 
   app.post('/company/setup', { preHandler: requireAuth }, async (req, reply) => {

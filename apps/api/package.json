@@ -23,10 +23,12 @@
     "dotenv": "^16.4.5",
     "fastify": "^4.26.2",
     "helmet": "^7.1.0",
+    "pdfkit": "^0.19.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",
+    "@types/pdfkit": "^0.17.6",
     "cross-env": "^7.0.3",
     "dotenv-cli": "^7.4.2",
     "prisma": "^5.12.0",
