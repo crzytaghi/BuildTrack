@@ -78,8 +78,9 @@ const InvoiceForm = ({ token, projects, fixedProjectId, editingInvoice, onSaved,
     if (!form.projectId) return 'Project is required';
     if (!form.clientName.trim()) return 'Client name is required';
     if (!form.clientEmail.trim()) return 'Client email is required';
-    if (form.lineItems.some((li) => !li.description.trim() || !li.quantity || !li.unitPrice))
-      return 'All line items must have a description, quantity, and unit price';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.clientEmail.trim())) return 'Client email must be a valid email address';
+    if (form.lineItems.some((li) => !li.description.trim() || Number(li.quantity) <= 0 || !li.unitPrice))
+      return 'All line items must have a description, quantity greater than 0, and unit price';
     return null;
   };
 
