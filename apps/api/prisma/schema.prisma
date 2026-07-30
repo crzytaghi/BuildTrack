@@ -39,6 +39,8 @@ model Session {
   userId    String
   expiresAt Float
   user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Project {
@@ -57,6 +59,8 @@ model Project {
   quotes      Quote[]
   documents   Document[]
   invoices    Invoice[]
+
+  @@index([companyId])
 }
 
 model Document {
@@ -73,6 +77,9 @@ model Document {
   createdAt String
   company   Company  @relation(fields: [companyId], references: [id])
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([projectId])
 }
 
 model Task {
@@ -82,6 +89,8 @@ model Task {
   status    String  @default("todo")
   dueDate   String?
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
 model Category {
@@ -91,6 +100,8 @@ model Category {
   name      String
   expenses  Expense[]
   lineItems BudgetLineItem[]
+
+  @@index([companyId])
 }
 
 model Vendor {
@@ -105,6 +116,8 @@ model Vendor {
   notes       String?
   expenses    Expense[]
   quotes      Quote[]
+
+  @@index([companyId])
 }
 
 model Expense {
@@ -120,6 +133,10 @@ model Expense {
   category    Category        @relation(fields: [categoryId], references: [id])
   vendor      Vendor          @relation(fields: [vendorId], references: [id])
   lineItem    BudgetLineItem? @relation(fields: [lineItemId], references: [id])
+
+  @@index([projectId])
+  @@index([categoryId])
+  @@index([vendorId])
 }
 
 model BudgetLineItem {
@@ -133,6 +150,8 @@ model BudgetLineItem {
   category       Category  @relation(fields: [categoryId], references: [id])
   expenses       Expense[]
   quotes         Quote[]
+
+  @@index([projectId])
 }
 
 model Quote {
@@ -148,6 +167,9 @@ model Quote {
   lineItem    BudgetLineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
   project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   vendor      Vendor         @relation(fields: [vendorId], references: [id])
+
+  @@index([lineItemId])
+  @@index([projectId])
 }
 
 model Invoice {
@@ -168,6 +190,10 @@ model Invoice {
   company       Company         @relation(fields: [companyId], references: [id])
   project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   lineItems     InvoiceLineItem[]
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([status])
 }
 
 model InvoiceLineItem {
@@ -177,4 +203,6 @@ model InvoiceLineItem {
   quantity    Float
   unitPrice   Float
   invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }
