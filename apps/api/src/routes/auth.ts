@@ -20,7 +20,13 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       .object({
         name: z.string().min(1),
         email: z.string().email(),
-        password: z.string().min(8),
+        password: z.string().min(8)
+          .refine(p => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
+          .refine(p => /[0-9]/.test(p), 'Password must contain a number')
+          .refine(p => /[!@#$%^&*(),.?":{}|<>]/.test(p), 'Password must contain a special character'),
+        companyName: z.string().min(1),
+        address: z.string().min(1),
+        phone: z.string().min(1),
       })
       .parse(req.body);
 
@@ -28,7 +34,12 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
     if (existing) return reply.code(409).send({ error: 'Email already in use' });
 
     const company = await prisma.company.create({
-      data: { name: `${body.name}'s Company`, companySetupComplete: false },
+      data: {
+        name: body.companyName,
+        address: body.address,
+        phone: body.phone,
+        companySetupComplete: true,
+      },
     });
 
     await prisma.category.createMany({
@@ -65,6 +76,7 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
     return reply.code(201).send({
       token: session.token,
       user: { id: user.id, email: user.email, name: user.name },
+      company: { name: company.name, address: company.address, phone: company.phone },
     });
   });
 

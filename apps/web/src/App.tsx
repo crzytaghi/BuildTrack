@@ -5,7 +5,6 @@ import AuthCard from './components/AuthCard';
 import AuthLogin from './components/AuthLogin';
 import AuthSignup from './components/AuthSignup';
 import CategoryModal from './components/CategoryModal';
-import CompanySetupScreen from './components/CompanySetupScreen';
 import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
 import InvoicesView from './components/InvoicesView';
@@ -70,6 +69,9 @@ const AppShell = () => {
               auth.setSignupEmail('');
               auth.setSignupPassword('');
               auth.setSignupConfirmPassword('');
+              auth.setSignupCompanyName('');
+              auth.setSignupAddress('');
+              auth.setSignupPhone('');
             }}
             error={auth.error}
           >
@@ -95,25 +97,33 @@ const AppShell = () => {
                 email={auth.signupEmail}
                 password={auth.signupPassword}
                 confirmPassword={auth.signupConfirmPassword}
+                companyName={auth.signupCompanyName}
+                address={auth.signupAddress}
+                phone={auth.signupPhone}
                 onNameChange={auth.setSignupName}
                 onEmailChange={auth.setSignupEmail}
                 onPasswordChange={auth.setSignupPassword}
                 onConfirmPasswordChange={auth.setSignupConfirmPassword}
+                onCompanyNameChange={auth.setSignupCompanyName}
+                onAddressChange={auth.setSignupAddress}
+                onPhoneChange={auth.setSignupPhone}
                 onSubmit={async () => {
                   try {
-                    if (auth.signupPassword !== auth.signupConfirmPassword) {
-                      auth.setError('Passwords do not match');
-                      return;
-                    }
                     await auth.handleAuth('signup', {
                       name: auth.signupName,
                       email: auth.signupEmail,
                       password: auth.signupPassword,
+                      companyName: auth.signupCompanyName,
+                      address: auth.signupAddress,
+                      phone: auth.signupPhone,
                     });
                     auth.setSignupName('');
                     auth.setSignupEmail('');
                     auth.setSignupPassword('');
                     auth.setSignupConfirmPassword('');
+                    auth.setSignupCompanyName('');
+                    auth.setSignupAddress('');
+                    auth.setSignupPhone('');
                   } catch (err) {
                     auth.setError(err instanceof Error ? err.message : 'Signup failed');
                   }
@@ -124,11 +134,6 @@ const AppShell = () => {
         </div>
       </div>
     );
-  }
-
-  // — Company setup —
-  if (auth.companySetupRequired) {
-    return <CompanySetupScreen onSubmit={auth.handleCompanySetup} />;
   }
 
   // — Dashboard derived data —

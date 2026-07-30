@@ -18,6 +18,9 @@ export const useAuth = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [signupCompanyName, setSignupCompanyName] = useState('');
+  const [signupAddress, setSignupAddress] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [companySetupRequired, setCompanySetupRequired] = useState(false);
 
@@ -68,18 +71,21 @@ export const useAuth = () => {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        if (res.status === 401) throw new Error('Invalid credentials');
-        if (res.status === 409) throw new Error('Email already in use');
+        if (res.status === 401) throw new Error('Incorrect email or password');
+        if (res.status === 409) throw new Error('An account with that email already exists');
         throw new Error((data as { error?: string }).error ?? 'Authentication failed');
       }
-      const data = (await res.json()) as { token: string; user: User };
+      const data = (await res.json()) as { token: string; user: User; company?: { name: string } };
       localStorage.setItem('bt_token', data.token);
       setToken(data.token);
       setUser(data.user);
-      if (path === 'signup') setCompanySetupRequired(true);
+      if (path === 'signup' && data.company) {
+        setCompanyName(data.company.name);
+        setCompanySetupRequired(false);
+      }
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        throw new Error('Unable to reach the API. Is it running on port 4000?');
+        throw new Error('Unable to reach the server. Please try again.');
       }
       throw err;
     }
@@ -119,6 +125,9 @@ export const useAuth = () => {
     signupEmail, setSignupEmail,
     signupPassword, setSignupPassword,
     signupConfirmPassword, setSignupConfirmPassword,
+    signupCompanyName, setSignupCompanyName,
+    signupAddress, setSignupAddress,
+    signupPhone, setSignupPhone,
     companyName, companySetupRequired,
     handleAuth, handleLogout, handleCompanySetup,
   };
