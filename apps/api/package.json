@@ -2,6 +2,9 @@
   "name": "buildtrack-api",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "test": "npm run prisma:migrate:test && dotenv -e .env.test -- vitest run",
