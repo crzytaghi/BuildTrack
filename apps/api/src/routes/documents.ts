@@ -117,6 +117,25 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
     return reply.send({ url });
   });
 
+  // Update document notes
+  app.patch('/documents/:id', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const { id } = req.params as { id: string };
+    const body = z.object({
+      notes: z.string().optional(),
+    }).parse(req.body);
+
+    const doc = await prisma.document.findFirst({ where: { id, companyId } });
+    if (!doc) return reply.code(404).send({ error: 'Document not found' });
+
+    const updated = await prisma.document.update({
+      where: { id },
+      data: { notes: body.notes ?? null },
+    });
+
+    return reply.send({ data: updated });
+  });
+
   // Delete document from R2 and DB
   app.delete('/documents/:id', { preHandler: requireAuth }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
