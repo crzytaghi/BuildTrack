@@ -72,6 +72,8 @@ const DocumentsView = ({ token, projects }: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [editingNotesValue, setEditingNotesValue] = useState('');
 
   const authHeaders = { Authorization: `Bearer ${token}` };
 
@@ -176,6 +178,18 @@ const DocumentsView = ({ token, projects }: Props) => {
     if (!res.ok) return;
     const { url } = (await res.json()) as { url: string };
     window.open(url, '_blank');
+  };
+
+  const handleSaveNotes = async (id: string) => {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      method: 'PATCH',
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: editingNotesValue || undefined }),
+    });
+    if (!res.ok) return;
+    const { data } = (await res.json()) as { data: DocumentItem };
+    setDocuments((prev) => prev.map((d) => (d.id === id ? data : d)));
+    setEditingNotesId(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -355,8 +369,22 @@ const DocumentsView = ({ token, projects }: Props) => {
                     <div className="mt-0.5 text-xs text-slate-400">
                       {doc.fileName} • {fmtBytes(doc.fileSize)}
                       {projectName && ` • ${projectName}`}
-                      {doc.notes && ` • ${doc.notes}`}
+                      {!editingNotesId || editingNotesId !== doc.id ? (doc.notes && ` • ${doc.notes}`) : null}
                     </div>
+                    {editingNotesId === doc.id ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          autoFocus
+                          value={editingNotesValue}
+                          onChange={(e) => setEditingNotesValue(e.target.value)}
+                          placeholder="Add notes…"
+                          className="flex-1 rounded-lg bg-surface px-3 py-1.5 text-xs text-slate-100 outline-none ring-1 ring-slate-700 focus:ring-accent"
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNotes(doc.id); if (e.key === 'Escape') setEditingNotesId(null); }}
+                        />
+                        <button className="text-xs font-medium text-accent" onClick={() => handleSaveNotes(doc.id)}>Save</button>
+                        <button className="text-xs text-slate-500" onClick={() => setEditingNotesId(null)}>Cancel</button>
+                      </div>
+                    ) : null}
                     <div className="mt-0.5 text-xs text-slate-500">
                       {new Date(doc.createdAt).toLocaleDateString()}
                     </div>
@@ -367,6 +395,12 @@ const DocumentsView = ({ token, projects }: Props) => {
                       onClick={() => handleDownload(doc)}
                     >
                       Download
+                    </button>
+                    <button
+                      className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400 hover:text-slate-200"
+                      onClick={() => { setEditingNotesId(doc.id); setEditingNotesValue(doc.notes ?? ''); }}
+                    >
+                      Edit notes
                     </button>
                     {deletingId === doc.id ? (
                       <div className="flex items-center gap-2">
