@@ -28,6 +28,9 @@ type Props = {
   onRequestDeleteExpense: (id: string | null) => void;
   onDeleteExpense: (id: string) => void;
   onManageCategories: () => void;
+  receiptFile: File | null;
+  onReceiptFileChange: (file: File | null) => void;
+  onViewReceipt: (expenseId: string) => void;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -55,6 +58,9 @@ const ExpensesView = ({
   onRequestDeleteExpense,
   onDeleteExpense,
   onManageCategories,
+  receiptFile,
+  onReceiptFileChange,
+  onViewReceipt,
 }: Props) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -217,6 +223,20 @@ const ExpensesView = ({
                         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${missingDate ? errorClass : ''}`}
                       />
                     </div>
+                    {!editingExpenseId && (
+                      <div className="mt-4">
+                        <label className="mb-1 block text-xs text-slate-400">Receipt (optional)</label>
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          onChange={(e) => onReceiptFileChange(e.target.files?.[0] ?? null)}
+                          className="w-full text-xs text-slate-400 file:mr-3 file:rounded-full file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-xs file:text-slate-200 file:ring-1 file:ring-slate-700 file:cursor-pointer"
+                        />
+                        {receiptFile && (
+                          <div className="mt-1 text-xs text-slate-500">{receiptFile.name}</div>
+                        )}
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={onManageCategories}
@@ -283,6 +303,14 @@ const ExpensesView = ({
                                 </>
                               ) : (
                                 <>
+                                  {expense.receiptFileKey && (
+                                    <button
+                                      className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-400 hover:text-slate-200"
+                                      onClick={() => onViewReceipt(expense.id)}
+                                    >
+                                      Receipt
+                                    </button>
+                                  )}
                                   <button
                                     className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
                                     onClick={() => onEditExpense(expense)}
