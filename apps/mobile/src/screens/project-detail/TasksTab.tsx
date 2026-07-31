@@ -31,6 +31,7 @@ type Props = {
   setTasks: (tasks: TaskItem[]) => void;
 };
 
+const TODAY = new Date().toISOString().split('T')[0];
 const emptyForm = { title: '', status: 'todo' as TaskItem['status'], dueDate: '' };
 
 const TasksTab = ({ project, tasks, setTasks }: Props) => {
@@ -164,20 +165,30 @@ const TasksTab = ({ project, tasks, setTasks }: Props) => {
         contentContainerStyle={{ padding: spacing.xl, paddingTop: showForm ? 0 : spacing.md }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={<Text style={{ color: colors.textMuted }}>No tasks yet.</Text>}
-        renderItem={({ item }) => (
-          <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.md }}>
-            <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{item.title}</Text>
-            <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
-              {STATUS_LABELS[item.status]}{item.dueDate ? ` • Due ${item.dueDate}` : ''}
-            </Text>
-            <TouchableOpacity
-              onPress={() => openEdit(item)}
-              style={{ marginTop: spacing.sm, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm }}
-            >
-              <Text style={{ color: colors.textLabel, fontSize: fontSize.sm }}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const isOverdue = item.dueDate && item.dueDate < TODAY && item.status !== 'done';
+          return (
+            <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1 }}>{item.title}</Text>
+                {isOverdue && (
+                  <View style={{ backgroundColor: colors.errorBg, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.full }}>
+                    <Text style={{ color: colors.errorText, fontSize: fontSize.xs, fontWeight: '600' }}>Overdue</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
+                {STATUS_LABELS[item.status]}{item.dueDate ? ` • Due ${item.dueDate}` : ''}
+              </Text>
+              <TouchableOpacity
+                onPress={() => openEdit(item)}
+                style={{ marginTop: spacing.sm, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm }}
+              >
+                <Text style={{ color: colors.textLabel, fontSize: fontSize.sm }}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }}
       />
 
       {/* Date picker */}

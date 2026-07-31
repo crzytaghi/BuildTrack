@@ -16,6 +16,7 @@ const STATUS_LABELS: Record<TaskItem['status'], string> = {
   blocked: 'Blocked',
   done: 'Done',
 };
+const TODAY = new Date().toISOString().split('T')[0];
 
 const formatDate = (value: Date) => {
   const year = value.getFullYear();
@@ -65,7 +66,7 @@ const TasksScreen = () => {
     try {
       const params = new URLSearchParams();
       if (filters.projectId) params.set('projectId', filters.projectId);
-      if (filters.status) params.set('status', filters.status);
+      if (filters.status && filters.status !== 'overdue') params.set('status', filters.status);
       if (filters.fromDate) params.set('fromDate', filters.fromDate);
       if (filters.toDate) params.set('toDate', filters.toDate);
       const query = params.toString();
@@ -74,7 +75,10 @@ const TasksScreen = () => {
       });
       if (!res.ok) throw new Error('Unable to load tasks');
       const data = (await res.json()) as { data: TaskItem[] };
-      setTasks(data.data);
+      const filtered = filters.status === 'overdue'
+        ? data.data.filter((t) => t.dueDate && t.dueDate < TODAY && t.status !== 'done')
+        : data.data;
+      setTasks(filtered);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load tasks');
     } finally {
@@ -179,6 +183,12 @@ const TasksScreen = () => {
               >
                 <Text style={{ color: !filters.status ? colors.primaryText : colors.textLabel, fontSize: fontSize.sm }}>All</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setFilters((p) => ({ ...p, status: 'overdue' }))}
+                style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.full, backgroundColor: filters.status === 'overdue' ? colors.errorBg : colors.inputBg }}
+              >
+                <Text style={{ color: filters.status === 'overdue' ? colors.errorText : colors.textLabel, fontSize: fontSize.sm }}>Overdue</Text>
+              </TouchableOpacity>
               {STATUS_OPTIONS.map((s) => (
                 <TouchableOpacity
                   key={s}
@@ -256,21 +266,31 @@ const TasksScreen = () => {
             data={tasks}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.md }}>
-                <Text style={{ color: colors.textPrimary, fontWeight: '600' }}>{item.title}</Text>
-                <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
-                  {projectMap[item.projectId] ?? 'Unknown'} • {STATUS_LABELS[item.status]}
-                  {item.dueDate ? ` • ${item.dueDate}` : ''}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleEdit(item)}
-                  style={{ marginTop: spacing.sm, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm }}
-                >
-                  <Text style={{ color: colors.textLabel, fontSize: fontSize.sm }}>Edit</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const isOverdue = item.dueDate && item.dueDate < TODAY && item.status !== 'done';
+              return (
+                <View style={{ backgroundColor: colors.cardBg, padding: spacing.lg, borderRadius: radius.lg, marginBottom: spacing.md }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <Text style={{ color: colors.textPrimary, fontWeight: '600', flex: 1 }}>{item.title}</Text>
+                    {isOverdue && (
+                      <View style={{ backgroundColor: colors.errorBg, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.full }}>
+                        <Text style={{ color: colors.errorText, fontSize: fontSize.xs, fontWeight: '600' }}>Overdue</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={{ color: colors.textSecondary, fontSize: fontSize.sm, marginTop: spacing.xs }}>
+                    {projectMap[item.projectId] ?? 'Unknown'} • {STATUS_LABELS[item.status]}
+                    {item.dueDate ? ` • ${item.dueDate}` : ''}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleEdit(item)}
+                    style={{ marginTop: spacing.sm, alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.sm }}
+                  >
+                    <Text style={{ color: colors.textLabel, fontSize: fontSize.sm }}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }}
           />
         )}
       </View>
