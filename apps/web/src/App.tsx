@@ -295,6 +295,9 @@ const AppShell = () => {
                   onRequestDeleteExpense={expenses.setDeletingExpenseId}
                   onDeleteExpense={expenses.handleExpenseDelete}
                   onManageCategories={() => setCategoryModalOpen(true)}
+                  receiptFile={expenses.receiptFile}
+                  onReceiptFileChange={expenses.setReceiptFile}
+                  onViewReceipt={expenses.handleViewReceipt}
                 />
               }
             />

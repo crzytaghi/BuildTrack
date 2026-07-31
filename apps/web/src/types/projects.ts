@@ -110,6 +110,9 @@ export type ExpenseItem = {
   description: string;
   expenseDate: string;
   lineItemId?: string;
+  receiptFileKey?: string;
+  receiptFileName?: string;
+  receiptMimeType?: string;
 };
 
 export type Category = {

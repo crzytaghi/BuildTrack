@@ -34,7 +34,7 @@ export interface DocumentManagerResult {
   docUploadError:    string | null;
   docDeletingId:     string | null;
   setDocDeletingId:  React.Dispatch<React.SetStateAction<string | null>>;
-  docFileInputRef:   React.RefObject<HTMLInputElement>;
+  docFileInputRef:   React.RefObject<HTMLInputElement | null>;
   handleDocFileSelect:  (file: File) => void;
   closeDocUploadForm:   () => void;
   handleDocUpload:      () => Promise<void>;

@@ -19,6 +19,7 @@ export const useExpenses = (token: string | null, user: User | null) => {
   const [expenseSubmitAttempted, setExpenseSubmitAttempted] = useState(false);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
   const [lineItems, setLineItems] = useState<BudgetLineItem[]>([]);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   // Load expenses on relevant pages — also covers /vendors since that view needs expense data for spend reporting
   useEffect(() => {
@@ -69,6 +70,7 @@ export const useExpenses = (token: string | null, user: User | null) => {
     setExpenseForm({ projectId: '', vendorId: '', description: '', amount: '', categoryId: '', expenseDate: '', lineItemId: '' });
     setEditingExpenseId(null);
     setExpenseSubmitAttempted(false);
+    setReceiptFile(null);
   };
 
   const closeExpenseForm = () => { resetExpenseForm(); setExpenseCreateOpen(false); };
@@ -83,6 +85,30 @@ export const useExpenses = (token: string | null, user: User | null) => {
     if (!expenseForm.amount || Number(expenseForm.amount) <= 0) { setExpensesError('A valid amount is required'); return; }
     if (!expenseForm.categoryId) { setExpensesError('Category is required'); return; }
     if (!expenseForm.expenseDate) { setExpensesError('Date is required'); return; }
+    // Upload receipt if provided (creation only)
+    let receiptPayload: { receiptFileKey?: string; receiptFileName?: string; receiptMimeType?: string } = {};
+    if (!editingExpenseId && receiptFile) {
+      try {
+        const urlRes = await fetch(`${API_BASE}/expenses/receipt-upload-url`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileName: receiptFile.name, mimeType: receiptFile.type || 'application/octet-stream', fileSize: receiptFile.size }),
+        });
+        if (!urlRes.ok) throw new Error('Unable to get upload URL');
+        const { uploadUrl, fileKey } = (await urlRes.json()) as { uploadUrl: string; fileKey: string };
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': receiptFile.type || 'application/octet-stream' },
+          body: receiptFile,
+        });
+        if (!uploadRes.ok) throw new Error('Receipt upload failed');
+        receiptPayload = { receiptFileKey: fileKey, receiptFileName: receiptFile.name, receiptMimeType: receiptFile.type || 'application/octet-stream' };
+      } catch (err) {
+        setExpensesError(err instanceof Error ? err.message : 'Receipt upload failed');
+        return;
+      }
+    }
+
     const method = editingExpenseId ? 'PATCH' : 'POST';
     const url = editingExpenseId
       ? `${API_BASE}/expenses/${editingExpenseId}`
@@ -97,6 +123,7 @@ export const useExpenses = (token: string | null, user: User | null) => {
         description: expenseForm.description.trim(),
         expenseDate: expenseForm.expenseDate,
         lineItemId: expenseForm.lineItemId || undefined,
+        ...receiptPayload,
       }),
     });
     if (!res.ok) { setExpensesError('Unable to save expense'); return; }
@@ -128,6 +155,16 @@ export const useExpenses = (token: string | null, user: User | null) => {
     setDeletingExpenseId(null);
   };
 
+  const handleViewReceipt = async (expenseId: string) => {
+    if (!token) return;
+    const res = await fetch(`${API_BASE}/expenses/${expenseId}/receipt-url`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const { url } = (await res.json()) as { url: string };
+    window.open(url, '_blank');
+  };
+
   const onCreateExpense = () => {
     setExpenseCreateOpen(true);
     setEditingExpenseId(null);
@@ -141,8 +178,8 @@ export const useExpenses = (token: string | null, user: User | null) => {
     expenseForm, setExpenseForm,
     editingExpenseId, expenseCreateOpen, setExpenseCreateOpen,
     expenseSubmitAttempted, deletingExpenseId, setDeletingExpenseId,
-    lineItems,
+    lineItems, receiptFile, setReceiptFile,
     handleExpenseSubmit, handleExpenseDelete, selectExpenseForEdit,
-    closeExpenseForm, onCreateExpense,
+    closeExpenseForm, onCreateExpense, handleViewReceipt,
   };
 };

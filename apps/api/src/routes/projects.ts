@@ -2,6 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import type { PrismaClient } from '@prisma/client';
+import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { r2, BUCKET, MAX_FILE_SIZE } from '../lib/r2.js';
 
 type ProjectPluginOptions = {
   prisma: PrismaClient;
@@ -182,12 +185,30 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
         description: z.string().min(1),
         expenseDate: z.string(),
         lineItemId: z.string().optional(),
+        receiptFileKey: z.string().optional(),
+        receiptFileName: z.string().optional(),
+        receiptMimeType: z.string().optional(),
       })
       .parse(req.body);
 
     const id = `exp_${Date.now()}`;
     const expense = await prisma.expense.create({ data: { id, projectId, ...body } });
     return reply.code(201).send({ data: stripNulls(expense as Record<string, unknown>) });
+  });
+
+  app.post('/expenses/receipt-upload-url', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const body = z.object({
+      fileName: z.string().min(1),
+      mimeType: z.string().min(1),
+      fileSize: z.number().int().positive().max(MAX_FILE_SIZE, 'File exceeds 50 MB limit'),
+    }).parse(req.body);
+
+    const safeFileName = body.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileKey = `${companyId}/receipts/${Date.now()}-${safeFileName}`;
+    const command = new PutObjectCommand({ Bucket: BUCKET, Key: fileKey, ContentType: body.mimeType, ContentLength: body.fileSize });
+    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 900 });
+    return reply.send({ uploadUrl, fileKey });
   });
 
   app.get('/expenses', { preHandler: requireAuth }, async (req) => {
@@ -235,11 +256,29 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     return { data: stripNulls(updated as Record<string, unknown>) };
   });
 
+  app.get('/expenses/:id/receipt-url', { preHandler: requireAuth }, async (req, reply) => {
+    const { companyId } = (req as any).auth.user;
+    const { id } = req.params as { id: string };
+    const expense = await prisma.expense.findFirst({ where: { id, project: { companyId } } });
+    if (!expense) return reply.code(404).send({ error: 'Not found' });
+    if (!expense.receiptFileKey) return reply.code(404).send({ error: 'No receipt attached' });
+    const command = new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: expense.receiptFileKey,
+      ResponseContentDisposition: `inline; filename="${expense.receiptFileName}"`,
+    });
+    const url = await getSignedUrl(r2, command, { expiresIn: 3600 });
+    return reply.send({ url });
+  });
+
   app.delete('/expenses/:id', { preHandler: requireAuth }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const id = (req.params as { id: string }).id;
     const expense = await prisma.expense.findFirst({ where: { id, project: { companyId } } });
     if (!expense) return reply.code(404).send({ error: 'Not found' });
+    if (expense.receiptFileKey) {
+      await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: expense.receiptFileKey }));
+    }
     await prisma.expense.delete({ where: { id } });
     reply.code(204).send();
   });

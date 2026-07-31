@@ -121,18 +121,21 @@ model Vendor {
 }
 
 model Expense {
-  id          String          @id
-  projectId   String
-  amount      Float
-  categoryId  String
-  vendorId    String
-  description String
-  expenseDate String
-  lineItemId  String?
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  category    Category        @relation(fields: [categoryId], references: [id])
-  vendor      Vendor          @relation(fields: [vendorId], references: [id])
-  lineItem    BudgetLineItem? @relation(fields: [lineItemId], references: [id])
+  id              String          @id
+  projectId       String
+  amount          Float
+  categoryId      String
+  vendorId        String
+  description     String
+  expenseDate     String
+  lineItemId      String?
+  receiptFileKey  String?
+  receiptFileName String?
+  receiptMimeType String?
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category        Category        @relation(fields: [categoryId], references: [id])
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+  lineItem        BudgetLineItem? @relation(fields: [lineItemId], references: [id])
 
   @@index([projectId])
   @@index([categoryId])
