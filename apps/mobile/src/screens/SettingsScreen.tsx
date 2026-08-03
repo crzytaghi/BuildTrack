@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
+import { KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -47,7 +47,8 @@ const SettingsScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.pageBg }} edges={['top']}>
-      <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: spacing.xl }} keyboardShouldPersistTaps="handled">
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: spacing.md }}>
           <Text style={{ color: colors.link, fontSize: fontSize.sm }}>← Dashboard</Text>
         </TouchableOpacity>
@@ -130,6 +131,7 @@ const SettingsScreen = () => {
           <Text style={{ color: colors.errorText, fontWeight: '700' }}>Log Out</Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
