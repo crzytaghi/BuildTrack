@@ -71,7 +71,7 @@ export const buildApp = async () => {
   });
 
   await app.register(healthRoutes, { prefix: API_PREFIX });
-  await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser, prisma });
+  await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser, requireAuth, prisma });
   await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth, prisma });
   await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth });
   await app.register(documentRoutes, { prefix: API_PREFIX, prisma, requireAuth });

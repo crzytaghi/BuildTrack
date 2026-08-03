@@ -19,6 +19,12 @@ const SettingsView = ({ token, userEmail }: Props) => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
+
   useEffect(() => {
     fetch(`${API_BASE}/company/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
@@ -63,6 +69,33 @@ const SettingsView = ({ token, userEmail }: Props) => {
     setEditing(false);
     setForm({ name: company.name, address: company.address ?? '', phone: company.phone ?? '' });
     setSaveError(null);
+  };
+
+  const handleChangePassword = async () => {
+    setPwError(null);
+    if (pwForm.next !== pwForm.confirm) { setPwError('New passwords do not match'); return; }
+    if (pwForm.next.length < 8) { setPwError('Password must be at least 8 characters'); return; }
+    if (!/[A-Z]/.test(pwForm.next)) { setPwError('Password must contain an uppercase letter'); return; }
+    if (!/[0-9]/.test(pwForm.next)) { setPwError('Password must contain a number'); return; }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(pwForm.next)) { setPwError('Password must contain a special character'); return; }
+    setPwSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/password`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+      });
+      if (res.status === 401) { setPwError('Current password is incorrect'); return; }
+      if (!res.ok) throw new Error();
+      setPwForm({ current: '', next: '', confirm: '' });
+      setPwOpen(false);
+      setPwSuccess(true);
+      setTimeout(() => setPwSuccess(false), 3000);
+    } catch {
+      setPwError('Unable to change password.');
+    } finally {
+      setPwSaving(false);
+    }
   };
 
   return (
@@ -165,13 +198,58 @@ const SettingsView = ({ token, userEmail }: Props) => {
 
         {/* Account info */}
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
-          <div className="text-sm font-semibold text-slate-200">Account</div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-200">Account</div>
+            {!pwOpen && (
+              <button
+                className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                onClick={() => { setPwOpen(true); setPwError(null); }}
+              >
+                Change password
+              </button>
+            )}
+          </div>
           <div className="mt-4 space-y-3 text-sm">
             <div>
               <div className="text-xs uppercase tracking-wide text-slate-400">Email</div>
               <div className="mt-1 text-slate-100">{userEmail}</div>
             </div>
           </div>
+          {pwSuccess && (
+            <div className="mt-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">Password updated successfully.</div>
+          )}
+          {pwOpen && (
+            <div className="mt-4 space-y-3">
+              {pwError && (
+                <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">{pwError}</div>
+              )}
+              {(['current', 'next', 'confirm'] as const).map((field) => (
+                <input
+                  key={field}
+                  type="password"
+                  placeholder={field === 'current' ? 'Current password' : field === 'next' ? 'New password' : 'Confirm new password'}
+                  value={pwForm[field]}
+                  onChange={(e) => setPwForm((p) => ({ ...p, [field]: e.target.value }))}
+                  className="w-full rounded-xl bg-surface px-4 py-3 text-sm text-slate-100 outline-none ring-1 ring-slate-800 focus:ring-accent"
+                />
+              ))}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
+                  onClick={handleChangePassword}
+                  disabled={pwSaving}
+                >
+                  {pwSaving ? 'Saving...' : 'Update password'}
+                </button>
+                <button
+                  className="text-xs uppercase tracking-wide text-slate-400"
+                  onClick={() => { setPwOpen(false); setPwForm({ current: '', next: '', confirm: '' }); setPwError(null); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>

@@ -10,20 +10,23 @@ type AuthPluginOptions = {
   createSession: (userId: string) => Promise<{ token: string }>;
   getAuthUser: (req: { headers: Record<string, string | string[] | undefined> }) =>
     Promise<{ user: User; session: { token: string } } | null>;
+  requireAuth: (req: any, reply: any) => Promise<void>;
 };
 
+const passwordSchema = z.string().min(8)
+  .refine(p => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
+  .refine(p => /[0-9]/.test(p), 'Password must contain a number')
+  .refine(p => /[!@#$%^&*(),.?":{}|<>]/.test(p), 'Password must contain a special character');
+
 const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
-  const { hashPassword, createSession, getAuthUser, prisma } = options;
+  const { hashPassword, createSession, getAuthUser, requireAuth, prisma } = options;
 
   app.post('/auth/signup', async (req, reply) => {
     const body = z
       .object({
         name: z.string().min(1),
         email: z.string().email(),
-        password: z.string().min(8)
-          .refine(p => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
-          .refine(p => /[0-9]/.test(p), 'Password must contain a number')
-          .refine(p => /[!@#$%^&*(),.?":{}|<>]/.test(p), 'Password must contain a special character'),
+        password: passwordSchema,
         companyName: z.string().min(1),
         address: z.string().min(1),
         phone: z.string().min(1),
@@ -113,6 +116,26 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
     const auth = await getAuthUser(req);
     if (!auth) return reply.code(401).send({ error: 'Unauthorized' });
     return { user: { id: auth.user.id, email: auth.user.email, name: auth.user.name } };
+  });
+
+  app.patch('/auth/password', { preHandler: requireAuth }, async (req, reply) => {
+    const userId = (req as any).auth.user.id;
+    const body = z.object({
+      currentPassword: z.string().min(1),
+      newPassword: passwordSchema,
+    }).parse(req.body);
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return reply.code(404).send({ error: 'User not found' });
+
+    const candidate = hashPassword(body.currentPassword, user.passwordSalt);
+    if (candidate !== user.passwordHash) return reply.code(401).send({ error: 'Current password is incorrect' });
+
+    const newSalt = crypto.randomBytes(16).toString('hex');
+    const newHash = hashPassword(body.newPassword, newSalt);
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash: newHash, passwordSalt: newSalt } });
+
+    return reply.send({ ok: true });
   });
 };
 
