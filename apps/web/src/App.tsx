@@ -23,13 +23,14 @@ import { useExpenses } from './hooks/useExpenses';
 import { useProjects } from './hooks/useProjects';
 import { useTasks } from './hooks/useTasks';
 import { useVendors } from './hooks/useVendors';
-
-const fmtCompact = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
+import {
+  computeKpis,
+  computeTasksDueSoon,
+  computeRecentExpenses,
+  computeProjectSpendData,
+  computeSpendByMonth,
+  computeSpendByCategory,
+} from './lib/dashboardUtils';
 
 const AppShell = () => {
   const navigate = useNavigate();
@@ -137,65 +138,15 @@ const AppShell = () => {
   }
 
   // — Dashboard derived data —
-  const totalBudget = projects.projects.reduce((sum, p) => sum + (p.budgetTotal ?? 0), 0);
-  const totalSpend = expenses.expenses.reduce((sum, e) => sum + e.amount, 0);
-  const variance = totalBudget - totalSpend;
-  const activeProjects = projects.projects.filter((p) => p.status === 'active').length;
-
-  const kpis = [
-    { label: 'Total Budget', value: fmtCompact.format(totalBudget), tone: 'bg-emerald-400' },
-    { label: 'Actual Spend', value: fmtCompact.format(totalSpend), tone: 'bg-amber-400' },
-    { label: 'Variance', value: fmtCompact.format(variance), tone: variance >= 0 ? 'bg-sky-400' : 'bg-red-400' },
-    { label: 'Active Projects', value: String(activeProjects), tone: 'bg-violet-400' },
-  ];
-
   const today = new Date().toISOString().slice(0, 10);
   const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const tasksDueSoon = tasks.tasks
-    .filter((t) => t.status !== 'done' && t.dueDate && t.dueDate >= today && t.dueDate <= sevenDaysOut)
-    .sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''))
-    .slice(0, 5)
-    .map((t) => ({ ...t, projectName: projects.projects.find((p) => p.id === t.projectId)?.name ?? 'Unknown Project' }));
-
-  const recentExpenses = [...expenses.expenses]
-    .sort((a, b) => b.expenseDate.localeCompare(a.expenseDate))
-    .slice(0, 5)
-    .map((e) => ({
-      ...e,
-      vendorName: vendors.vendors.find((v) => v.id === e.vendorId)?.name ?? 'Unknown Vendor',
-      projectName: projects.projects.find((p) => p.id === e.projectId)?.name ?? 'Unknown Project',
-    }));
-
-  const spendByProject = expenses.expenses.reduce<Record<string, number>>((acc, e) => {
-    acc[e.projectId] = (acc[e.projectId] ?? 0) + e.amount;
-    return acc;
-  }, {});
-
-  const projectSpendData = projects.projects
-    .filter((p) => (p.budgetTotal ?? 0) > 0 || spendByProject[p.id])
-    .map((p) => ({ name: p.name, budget: p.budgetTotal ?? 0, actual: spendByProject[p.id] ?? 0 }));
-
-  const now = new Date();
-  const last6Months = Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
-  const spendByMonth = last6Months.map((month) => ({
-    month,
-    amount: expenses.expenses
-      .filter((e) => e.expenseDate.startsWith(month))
-      .reduce((sum, e) => sum + e.amount, 0),
-  }));
-  const spendByCategory = categories.categories
-    .map((cat) => ({
-      name: cat.name,
-      amount: expenses.expenses
-        .filter((e) => e.categoryId === cat.id)
-        .reduce((sum, e) => sum + e.amount, 0),
-    }))
-    .filter((c) => c.amount > 0)
-    .sort((a, b) => b.amount - a.amount);
+  const kpis = computeKpis(projects.projects, expenses.expenses);
+  const tasksDueSoon = computeTasksDueSoon(tasks.tasks, projects.projects, today, sevenDaysOut);
+  const recentExpenses = computeRecentExpenses(expenses.expenses, vendors.vendors, projects.projects);
+  const projectSpendData = computeProjectSpendData(projects.projects, expenses.expenses);
+  const spendByMonth = computeSpendByMonth(expenses.expenses);
+  const spendByCategory = computeSpendByCategory(categories.categories, expenses.expenses);
 
   // — Main layout —
   return (
