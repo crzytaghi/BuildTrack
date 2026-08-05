@@ -5,7 +5,10 @@ import { resetDb, seed } from '../src/store.js';
 const signupPayload = {
   name: 'Alex Builder',
   email: 'alex@buildtrack.com',
-  password: 'securepass1',
+  password: 'Securepass1!',
+  companyName: 'Builder Co',
+  address: '123 Main St, City, ST 00000',
+  phone: '(555) 000-0000',
 };
 
 beforeEach(async () => {
