@@ -176,6 +176,27 @@ const AppShell = () => {
     .filter((p) => (p.budgetTotal ?? 0) > 0 || spendByProject[p.id])
     .map((p) => ({ name: p.name, budget: p.budgetTotal ?? 0, actual: spendByProject[p.id] ?? 0 }));
 
+  const now = new Date();
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const spendByMonth = last6Months.map((month) => ({
+    month,
+    amount: expenses.expenses
+      .filter((e) => e.expenseDate.startsWith(month))
+      .reduce((sum, e) => sum + e.amount, 0),
+  }));
+  const spendByCategory = categories.categories
+    .map((cat) => ({
+      name: cat.name,
+      amount: expenses.expenses
+        .filter((e) => e.categoryId === cat.id)
+        .reduce((sum, e) => sum + e.amount, 0),
+    }))
+    .filter((c) => c.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
   // — Main layout —
   return (
     <div className="min-h-screen bg-ink text-slate-100">
@@ -210,6 +231,8 @@ const AppShell = () => {
                   tasksDueSoon={tasksDueSoon}
                   recentExpenses={recentExpenses}
                   projectSpendData={projectSpendData}
+                  spendByMonth={spendByMonth}
+                  spendByCategory={spendByCategory}
                   headerActions={
                     <button className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-slate-950 shadow">
                       Export CSV

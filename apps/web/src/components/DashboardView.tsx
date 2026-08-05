@@ -4,6 +4,8 @@ type Kpi = { label: string; value: string; tone: string };
 type TaskDueSoon = { id: string; title: string; dueDate?: string; projectName: string };
 type RecentExpense = { id: string; vendorName: string; projectName: string; amount: number; expenseDate: string };
 type ProjectSpend = { name: string; budget: number; actual: number };
+type MonthSpend = { month: string; amount: number };
+type CategorySpend = { name: string; amount: number };
 
 type Props = {
   userName: string;
@@ -12,14 +14,20 @@ type Props = {
   tasksDueSoon: TaskDueSoon[];
   recentExpenses: RecentExpense[];
   projectSpendData: ProjectSpend[];
+  spendByMonth: MonthSpend[];
+  spendByCategory: CategorySpend[];
   headerActions?: ReactNode;
 };
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtAxis = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpenses, projectSpendData, headerActions }: Props) => {
+const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpenses, projectSpendData, spendByMonth, spendByCategory, headerActions }: Props) => {
   const maxVal = Math.max(...projectSpendData.flatMap((p) => [p.budget, p.actual]), 1);
+  const maxMonthVal = Math.max(...spendByMonth.map((m) => m.amount), 1);
+  const maxCatVal = Math.max(...spendByCategory.map((c) => c.amount), 1);
 
   return (
     <>
@@ -98,7 +106,67 @@ const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpens
           </div>
         </div>
       </section>
-      <section className="px-4 py-6 sm:px-6 lg:px-8">
+      <section className="grid grid-cols-1 gap-6 px-4 py-6 sm:px-6 lg:grid-cols-2 lg:px-8">
+        {/* Monthly Spend */}
+        <div className="rounded-2xl bg-panel p-6 shadow-lg">
+          <div className="text-sm font-semibold text-slate-200">Monthly Spend</div>
+          <div className="mt-4 flex gap-3">
+            <div className="flex w-12 flex-shrink-0 flex-col justify-between" style={{ height: '120px' }}>
+              <span className="text-right text-xs leading-none text-slate-500">{fmtAxis.format(maxMonthVal)}</span>
+              <span className="text-right text-xs leading-none text-slate-500">{fmtAxis.format(maxMonthVal / 2)}</span>
+              <span className="text-right text-xs leading-none text-slate-500">$0</span>
+            </div>
+            <div className="flex flex-1 flex-col">
+              <div className="relative flex h-30 items-end gap-2" style={{ height: '120px' }}>
+                <div className="pointer-events-none absolute inset-x-0 top-0 border-t border-slate-700/50" />
+                <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-slate-700/50" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-slate-700/50" />
+                {spendByMonth.map((m) => (
+                  <div key={m.month} className="flex flex-1 justify-center items-end h-full">
+                    <div
+                      className="w-full max-w-[32px] rounded-t-md bg-violet-400"
+                      style={{ height: m.amount > 0 ? `${Math.max(Math.round((m.amount / maxMonthVal) * 120), 2)}px` : '0px' }}
+                      title={fmt.format(m.amount)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-1 flex gap-2">
+                {spendByMonth.map((m) => (
+                  <div key={m.month} className="flex-1 text-center text-xs text-slate-400">
+                    {MONTHS[parseInt(m.month.slice(5), 10) - 1]}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Spend by Category */}
+        <div className="rounded-2xl bg-panel p-6 shadow-lg">
+          <div className="text-sm font-semibold text-slate-200">Spend by Category</div>
+          {spendByCategory.length === 0 ? (
+            <div className="mt-4 text-sm text-slate-500">No expense data yet.</div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {spendByCategory.map((c) => (
+                <div key={c.name}>
+                  <div className="mb-1 flex justify-between text-xs">
+                    <span className="truncate text-slate-300">{c.name}</span>
+                    <span className="ml-2 flex-shrink-0 text-slate-400">{fmt.format(c.amount)}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-800">
+                    <div
+                      className="h-2 rounded-full bg-sky-400"
+                      style={{ width: `${Math.round((c.amount / maxCatVal) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+      <section className="px-4 pb-6 sm:px-6 lg:px-8">
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="text-sm font-semibold text-slate-200">Recent Expenses</div>
           <div className="mt-4 divide-y divide-slate-800 text-sm">
