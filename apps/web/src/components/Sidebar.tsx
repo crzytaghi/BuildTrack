@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-
-const nav = ['Dashboard', 'Projects', 'Tasks', 'Expenses', 'Vendors', 'Invoices', 'Documents', 'Reports', 'Settings'];
+import { useRole } from '../context/CurrentUserContext';
+import { isNavActive, navItemsFor } from '../lib/nav';
 
 type Props = {
   onLogout: () => void;
@@ -8,6 +8,7 @@ type Props = {
 
 const Sidebar = ({ onLogout }: Props) => {
   const location = useLocation();
+  const nav = navItemsFor(useRole());
   return (
     <aside className="hidden h-full flex-col border-r border-slate-800 bg-[#0b1118] p-6 md:flex">
       <div>
@@ -15,17 +16,15 @@ const Sidebar = ({ onLogout }: Props) => {
         <div className="mt-10 space-y-2 text-sm">
           {nav.map((item) => (
             <Link
-              key={item}
-              to={item === 'Dashboard' ? '/' : `/${item.toLowerCase()}`}
+              key={item.path}
+              to={item.path}
               className={`block rounded-lg px-3 py-2 ${
-                (item === 'Dashboard' && location.pathname === '/') ||
-                (item === 'Projects' && location.pathname.startsWith('/projects')) ||
-                (item !== 'Dashboard' && item !== 'Projects' && location.pathname === `/${item.toLowerCase()}`)
+                isNavActive(item, location.pathname)
                   ? 'bg-slate-800 text-white'
                   : 'text-slate-400'
               }`}
             >
-              {item}
+              {item.label}
             </Link>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getApiBase } from '../../lib/api';
 import type { ProjectItem } from '../../types/projects';
+import ProjectCrewSection from './ProjectCrewSection';
 
 const API_BASE = getApiBase();
 
@@ -145,6 +146,8 @@ const SettingsTab = ({ project, onProjectUpdate, deletingProjectId, onRequestDel
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
+
+      <ProjectCrewSection projectId={project.id} token={token} />
 
       {/* Danger zone */}
       <div className="rounded-2xl border border-red-900/50 bg-panel p-6 shadow-lg">

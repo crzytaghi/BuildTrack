@@ -1,4 +1,10 @@
-export type User = { id: string; email: string; name: string };
+export type Role = 'owner' | 'manager' | 'field';
+
+export type User = { id: string; email: string; name: string; role: Role };
+
+export type Member = { id: string; name: string; email: string; role: Role; createdAt: string };
+
+export type PendingInvite = { id: string; email: string; role: Role; createdAt: string; expiresAt: string };
 
 export type Company = {
   id: string;

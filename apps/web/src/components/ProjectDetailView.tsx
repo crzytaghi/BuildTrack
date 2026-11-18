@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useProjectDetail } from '../hooks/useProjectDetail';
 import { useDocumentManager } from '../hooks/useDocumentManager';
+import { useRole } from '../context/CurrentUserContext';
+import { canManage } from '../lib/permissions';
 import CategoryModal from './CategoryModal';
 import OverviewTab  from './project-detail/OverviewTab';
 import BudgetTab    from './project-detail/BudgetTab';
@@ -23,6 +25,8 @@ const projectStatusLabel: Record<string, string> = {
 
 type TabType = 'overview' | 'budget' | 'tasks' | 'expenses' | 'invoices' | 'documents' | 'settings';
 const TABS: TabType[] = ['overview', 'budget', 'tasks', 'expenses', 'invoices', 'documents', 'settings'];
+// Budget, invoices and project settings are owner/manager only.
+const FIELD_TABS: TabType[] = ['overview', 'tasks', 'expenses', 'documents'];
 
 type Props = {
   projectId:              string;
@@ -37,6 +41,9 @@ const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, o
   const [activeTab,         setActiveTab]         = useState<TabType>('overview');
   const [tabMenuOpen,       setTabMenuOpen]       = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const role    = useRole();
+  const manager = canManage(role);
+  const tabs    = manager ? TABS : FIELD_TABS;
 
   const {
     project, setProject,
@@ -46,7 +53,7 @@ const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, o
     quotes,   setQuotes,
     vendors, categories, setCategories,
     loading, error,
-  } = useProjectDetail(projectId, token);
+  } = useProjectDetail(projectId, token, role);
 
   const docManager = useDocumentManager(projectId, token, activeTab);
 
@@ -81,17 +88,19 @@ const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, o
             </span>
           </div>
         </div>
-        <button
-          className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:text-white"
-          onClick={() => setActiveTab('settings')}
-        >
-          Settings
-        </button>
+        {manager && (
+          <button
+            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:text-white"
+            onClick={() => setActiveTab('settings')}
+          >
+            Settings
+          </button>
+        )}
       </header>
 
       {/* Tab bar — desktop */}
       <div className="hidden border-b border-slate-800 px-4 sm:flex sm:px-6 lg:px-8">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -122,7 +131,7 @@ const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, o
         </button>
         {tabMenuOpen && (
           <div className="absolute left-0 right-0 top-full z-20 border-b border-slate-800 bg-slate-900 shadow-xl">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setActiveTab(tab); setTabMenuOpen(false); }}
@@ -151,6 +160,7 @@ const ProjectDetailView = ({ projectId, token, companyName, deletingProjectId, o
           vendors={vendors}
           totalSpend={totalSpend}
           variance={variance}
+          showFinancials={manager}
           onNavigateToTab={setActiveTab}
         />
       )}

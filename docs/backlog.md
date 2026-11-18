@@ -7,7 +7,7 @@ _Last updated: 2026-11-18. Ordered by priority within each section._
 ### Epic: Multi-User Roles
 Roles: Owner / Manager / Field. Invites are one-time links (no email service yet). See `docs/roles.md`.
 - ~~Story: API — roles, invite links, project assignments, permission checks on every route, tests~~ (done)
-- Story: Web — Team page (invite, pending invites, roles, remove), invite acceptance page, project assignment, hide UI by role
+- ~~Story: Web — Team page, invite acceptance page, project crew assignment, hide UI by role~~ (done)
 - Story: Mobile — invite acceptance, hide screens/actions by role, field users see assigned projects only
 - Later: send invite links by email once an email service is added
 

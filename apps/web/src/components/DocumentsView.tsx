@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getApiBase } from '../lib/api';
+import { useRole } from '../context/CurrentUserContext';
+import { canManage } from '../lib/permissions';
 import type { DocumentItem, DocumentType, ProjectItem } from '../types/projects';
 
 const API_BASE = getApiBase();
@@ -51,6 +53,8 @@ type Props = {
 };
 
 const DocumentsView = ({ token, projects }: Props) => {
+  // Field users can't add company-wide documents; uploads must go to one of their projects.
+  const allowGeneral = canManage(useRole());
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -264,7 +268,7 @@ const DocumentsView = ({ token, projects }: Props) => {
               onChange={(e) => setUploadForm((p) => ({ ...p, projectId: e.target.value }))}
               className="rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800"
             >
-              <option value="">No project (general)</option>
+              <option value="" disabled={!allowGeneral}>{allowGeneral ? 'No project (general)' : 'Choose a project'}</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -291,8 +295,9 @@ const DocumentsView = ({ token, projects }: Props) => {
             </div>
           ) : (
             <button
-              className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-slate-950"
+              className="mt-5 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-slate-950 disabled:opacity-50"
               onClick={handleUpload}
+              disabled={!allowGeneral && !uploadForm.projectId}
             >
               Upload
             </button>

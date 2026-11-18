@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-
-const nav = ['Dashboard', 'Projects', 'Tasks', 'Expenses', 'Vendors', 'Invoices', 'Documents', 'Reports', 'Settings'];
+import { useRole } from '../context/CurrentUserContext';
+import { isNavActive, navItemsFor } from '../lib/nav';
 
 type Props = {
   isOpen: boolean;
@@ -10,6 +10,7 @@ type Props = {
 
 const MobileNav = ({ isOpen, onClose, onLogout }: Props) => {
   const location = useLocation();
+  const nav = navItemsFor(useRole());
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 md:hidden">
@@ -20,18 +21,16 @@ const MobileNav = ({ isOpen, onClose, onLogout }: Props) => {
           <div className="mt-8 space-y-2 text-sm">
             {nav.map((item) => (
               <Link
-                key={item}
-                to={item === 'Dashboard' ? '/' : `/${item.toLowerCase()}`}
+                key={item.path}
+                to={item.path}
                 onClick={onClose}
                 className={`block rounded-lg px-3 py-2 ${
-                  (item === 'Dashboard' && location.pathname === '/') ||
-                  (item === 'Projects' && location.pathname.startsWith('/projects')) ||
-                  (item !== 'Dashboard' && item !== 'Projects' && location.pathname === `/${item.toLowerCase()}`)
+                  isNavActive(item, location.pathname)
                     ? 'bg-slate-800 text-white'
                     : 'text-slate-400'
                 }`}
               >
-                {item}
+                {item.label}
               </Link>
             ))}
           </div>

@@ -19,6 +19,8 @@ type Props = {
   onEditVendor: (vendor: VendorItem) => void;
   onRequestDeleteVendor: (id: string | null) => void;
   onDeleteVendor: (id: string) => void;
+  /** Owners and managers can add, edit and delete vendors. */
+  canEdit?: boolean;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -41,6 +43,7 @@ const VendorsView = ({
   onEditVendor,
   onRequestDeleteVendor,
   onDeleteVendor,
+  canEdit = true,
 }: Props) => {
   const [selectedVendorId, setSelectedVendorId] = useState<string | null>(null);
   const [spendFromDate, setSpendFromDate] = useState('');
@@ -72,7 +75,7 @@ const VendorsView = ({
               <div className="text-sm font-semibold text-slate-200">Vendor List</div>
               <div className="text-xs text-slate-500">View and manage all vendors.</div>
             </div>
-            {!createOpen && (
+            {canEdit && !createOpen && (
               <button
                 className="rounded-full bg-accent px-4 py-2 text-xs font-semibold text-slate-950"
                 onClick={onCreateVendor}
@@ -200,7 +203,7 @@ const VendorsView = ({
                                 Cancel
                               </button>
                             </>
-                          ) : (
+                          ) : canEdit && (
                             <>
                               <button
                                 className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
