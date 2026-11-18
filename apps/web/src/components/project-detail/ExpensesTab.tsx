@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { getApiBase } from '../../lib/api';
+import { useRole } from '../../context/CurrentUserContext';
+import { canManage } from '../../lib/permissions';
 import type { BudgetLineItem, Category, ExpenseItem } from '../../types/projects';
 
 const API_BASE = getApiBase();
@@ -19,6 +21,7 @@ type FormProps = {
   vendors:            { id: string; name: string }[];
   categories:         Category[];
   lineItems:          BudgetLineItem[];
+  canManage:          boolean;
   onManageCategories: () => void;
   onSubmit:           () => void;
   onCancel:           () => void;
@@ -27,7 +30,7 @@ type FormProps = {
   onConfirmDelete:    () => void;
 };
 
-const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletingId, vendors, categories, lineItems, onManageCategories, onSubmit, onCancel, onRequestDelete, onCancelDelete, onConfirmDelete }: FormProps) => (
+const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletingId, vendors, categories, lineItems, canManage, onManageCategories, onSubmit, onCancel, onRequestDelete, onCancelDelete, onConfirmDelete }: FormProps) => (
   <div className="rounded-2xl border border-slate-800 bg-surface/60 p-5">
     <div className="flex items-center justify-between">
       <div className="text-sm font-semibold text-slate-200">{isEditing ? 'Edit Expense' : 'New Expense'}</div>
@@ -67,6 +70,7 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         <option value="">Select category</option>
         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
       </select>
+      {canManage && (
       <select
         value={form.lineItemId}
         onChange={(e) => setForm((p) => ({ ...p, lineItemId: e.target.value }))}
@@ -75,6 +79,7 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         <option value="">No line item (optional)</option>
         {lineItems.map((li) => <option key={li.id} value={li.id}>{li.description}</option>)}
       </select>
+      )}
       <input
         type="date"
         value={form.expenseDate}
@@ -82,13 +87,15 @@ const ExpenseForm = ({ form, setForm, submitAttempted, error, isEditing, deletin
         className={`rounded-xl bg-surface px-4 py-3 text-slate-100 outline-none ring-1 ring-slate-800 ${submitAttempted && !form.expenseDate ? errorClass : ''}`}
       />
     </div>
-    <button
-      type="button"
-      onClick={onManageCategories}
-      className="mt-3 text-xs text-slate-500 hover:text-slate-300"
-    >
-      Manage categories
-    </button>
+    {canManage && (
+      <button
+        type="button"
+        onClick={onManageCategories}
+        className="mt-3 text-xs text-slate-500 hover:text-slate-300"
+      >
+        Manage categories
+      </button>
+    )}
     <div className="mt-4 flex items-center gap-4">
       <button className="rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950" onClick={onSubmit}>
         {isEditing ? 'Update Expense' : 'Add Expense'}
@@ -124,6 +131,8 @@ type Props = {
 };
 
 const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, projectId, token, onManageCategories }: Props) => {
+  // Field users can add expenses but not edit/delete them, link budget lines or manage categories.
+  const manager = canManage(useRole());
   const [createOpen,       setCreateOpen]       = useState(false);
   const [submitAttempted,  setSubmitAttempted]  = useState(false);
   const [editingId,        setEditingId]        = useState<string | null>(null);
@@ -186,6 +195,7 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
   const sharedFormProps = {
     form, setForm, submitAttempted, error,
     vendors, categories, lineItems,
+    canManage: manager,
     onManageCategories,
     onSubmit: handleSubmit,
     onCancel: closeForm,
@@ -259,12 +269,14 @@ const ExpensesTab = ({ expenses, setExpenses, lineItems, vendors, categories, pr
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-sm font-semibold text-slate-100">{fmt.format(expense.amount)}</div>
-                        <button
-                          className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
-                          onClick={() => openEdit(expense)}
-                        >
-                          Edit
-                        </button>
+                        {manager && (
+                          <button
+                            className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
+                            onClick={() => openEdit(expense)}
+                          >
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

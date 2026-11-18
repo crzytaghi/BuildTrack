@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getApiBase } from '../lib/api';
+import { useRole } from '../context/CurrentUserContext';
+import { isOwner } from '../lib/permissions';
 
 const API_BASE = getApiBase();
 
@@ -11,6 +13,8 @@ type Props = {
 };
 
 const SettingsView = ({ token, userEmail }: Props) => {
+  // Only owners can edit company details; everyone can change their own password.
+  const owner = isOwner(useRole());
   const [company, setCompany] = useState<CompanyData>({ name: '', address: null, phone: null });
   const [form, setForm] = useState({ name: '', address: '', phone: '' });
   const [editing, setEditing] = useState(false);
@@ -113,7 +117,7 @@ const SettingsView = ({ token, userEmail }: Props) => {
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-200">Company</div>
-            {!editing && !loading && (
+            {!editing && !loading && owner && (
               <button
                 className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
                 onClick={() => { setEditing(true); setSaveError(null); }}

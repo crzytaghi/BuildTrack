@@ -22,9 +22,16 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
   // categories, and everything budget- or quote-related is limited to owners and managers.
   const requireManager = authorize(MANAGERS);
   const authUser = (req: any): AuthUser => req.auth.user;
+  // Budgets are hidden from field users.
+  const forViewer = <T extends { budgetTotal?: number | null }>(req: any, project: T) => {
+    if (isManager(authUser(req))) return project;
+    const { budgetTotal: _hidden, ...rest } = project;
+    return rest;
+  };
 
   app.get('/projects', { preHandler: requireAuth }, async (req) => {
-    return { data: await prisma.project.findMany({ where: projectScope(authUser(req)) }) };
+    const projects = await prisma.project.findMany({ where: projectScope(authUser(req)) });
+    return { data: projects.map((p) => forViewer(req, p)) };
   });
 
   app.post('/projects', { preHandler: requireManager }, async (req, reply) => {
@@ -49,7 +56,7 @@ const projectRoutes = async (app: FastifyInstance, options: ProjectPluginOptions
     const id = (req.params as { id: string }).id;
     const project = await prisma.project.findFirst({ where: { id, ...projectScope(authUser(req)) } });
     if (!project) return reply.code(404).send({ error: 'Not found' });
-    return { data: project };
+    return { data: forViewer(req, project) };
   });
 
   app.patch('/projects/:id', { preHandler: requireManager }, async (req, reply) => {

@@ -23,9 +23,11 @@ type Props = {
   totalSpend:       number;
   variance:         number;
   onNavigateToTab:  (tab: TabType) => void;
+  /** Budget, variance and the settings link are owner/manager only. */
+  showFinancials?:  boolean;
 };
 
-const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, onNavigateToTab }: Props) => {
+const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, onNavigateToTab, showFinancials = true }: Props) => {
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -35,17 +37,19 @@ const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, 
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="text-sm font-semibold text-slate-200">Project Summary</div>
-            <button
-              className="text-xs text-slate-400 hover:text-slate-200"
-              onClick={() => onNavigateToTab('settings')}
-            >
-              Edit in Settings →
-            </button>
+            {showFinancials && (
+              <button
+                className="text-xs text-slate-400 hover:text-slate-200"
+                onClick={() => onNavigateToTab('settings')}
+              >
+                Edit in Settings →
+              </button>
+            )}
           </div>
           <div className="mt-4 space-y-2 text-sm text-slate-300">
             <div>Start Date: {project.startDate ?? 'Not set'}</div>
             <div>End Date: {project.endDate ?? 'Not set'}</div>
-            <div>Budget Total: {project.budgetTotal ? fmt.format(project.budgetTotal) : 'Not set'}</div>
+            {showFinancials && <div>Budget Total: {project.budgetTotal ? fmt.format(project.budgetTotal) : 'Not set'}</div>}
             <div>Notes: {project.notes || 'None'}</div>
           </div>
         </div>
@@ -62,6 +66,7 @@ const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, 
               <div className="text-xs uppercase tracking-wide text-amber-300">Total Spend</div>
               <div className="mt-1 text-lg font-semibold text-slate-100">{fmt.format(totalSpend)}</div>
             </div>
+            {showFinancials && (<>
             <div className="rounded-xl bg-emerald-400/10 px-4 py-3">
               <div className="text-xs uppercase tracking-wide text-emerald-300">Budget</div>
               <div className="mt-1 text-lg font-semibold text-slate-100">{fmt.format(project.budgetTotal ?? 0)}</div>
@@ -70,6 +75,7 @@ const OverviewTab = ({ project, tasks, expenses, vendors, totalSpend, variance, 
               <div className={`text-xs uppercase tracking-wide ${variance >= 0 ? 'text-sky-300' : 'text-red-300'}`}>Variance</div>
               <div className="mt-1 text-lg font-semibold text-slate-100">{fmt.format(variance)}</div>
             </div>
+            </>)}
           </div>
         </div>
       </section>

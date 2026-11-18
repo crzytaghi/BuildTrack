@@ -228,6 +228,9 @@ describe('Field users', () => {
   it('only see projects they are assigned to', async () => {
     const list = await req('GET', '/projects', field.token);
     expect(list.json().data.map((p: { id: string }) => p.id)).toEqual(['proj_1']);
+    expect(list.json().data[0]).not.toHaveProperty('budgetTotal');
+    expect((await req('GET', '/projects/proj_1', field.token)).json().data).not.toHaveProperty('budgetTotal');
+    expect((await req('GET', '/projects/proj_1', ownerToken)).json().data.budgetTotal).toBe(420000);
     expect((await req('GET', '/projects/proj_1', field.token)).statusCode).toBe(200);
     expect((await req('GET', '/projects/proj_2', field.token)).statusCode).toBe(404);
   });

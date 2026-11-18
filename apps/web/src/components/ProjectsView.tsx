@@ -8,6 +8,8 @@ type Props = {
   onFormChange: (next: ProjectFormState) => void;
   onSubmit: () => void;
   onViewProject: (projectId: string) => void;
+  /** Owners and managers can create projects. */
+  canCreate?: boolean;
 };
 
 const ProjectsView = ({
@@ -18,6 +20,7 @@ const ProjectsView = ({
   onFormChange,
   onSubmit,
   onViewProject,
+  canCreate = true,
 }: Props) => (
   <>
     <header className="flex flex-col gap-4 bg-gradient-to-r from-slate-800 to-slate-900 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
@@ -26,6 +29,7 @@ const ProjectsView = ({
         <div className="text-sm text-slate-400">Create and manage your projects.</div>
       </div>
     </header>
+    {canCreate && (
     <section className="px-4 py-6 sm:px-6 lg:px-8">
       <div className="rounded-2xl bg-panel p-6 shadow-lg">
         <div className="text-sm font-semibold text-slate-200">New Project</div>
@@ -103,6 +107,7 @@ const ProjectsView = ({
         </button>
       </div>
     </section>
+    )}
     <section className="px-4 pb-8 sm:px-6 lg:px-8">
       <div className="rounded-2xl bg-panel p-6 shadow-lg">
         <div className="text-sm font-semibold text-slate-200">Project List</div>

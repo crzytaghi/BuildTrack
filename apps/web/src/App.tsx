@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, matchPath, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import AuthCard from './components/AuthCard';
 import AuthLogin from './components/AuthLogin';
@@ -8,14 +8,17 @@ import CategoryModal from './components/CategoryModal';
 import DashboardView from './components/DashboardView';
 import DocumentsView from './components/DocumentsView';
 import InvoicesView from './components/InvoicesView';
+import InviteAcceptView from './components/InviteAcceptView';
 import ExpensesView from './components/ExpensesView';
 import MobileNav from './components/MobileNav';
+import NoAccessView from './components/NoAccessView';
 import ProjectDetailView from './components/ProjectDetailView';
 import ProjectsView from './components/ProjectsView';
 import ReportsView from './components/ReportsView';
 import SettingsView from './components/SettingsView';
 import Sidebar from './components/Sidebar';
 import TasksView from './components/TasksView';
+import TeamView from './components/TeamView';
 import VendorsView from './components/VendorsView';
 import { useAuth } from './hooks/useAuth';
 import { useCategories } from './hooks/useCategories';
@@ -23,6 +26,8 @@ import { useExpenses } from './hooks/useExpenses';
 import { useProjects } from './hooks/useProjects';
 import { useTasks } from './hooks/useTasks';
 import { useVendors } from './hooks/useVendors';
+import { CurrentUserProvider } from './context/CurrentUserContext';
+import { canManage } from './lib/permissions';
 import {
   computeKpis,
   computeTasksDueSoon,
@@ -34,6 +39,7 @@ import {
 
 const AppShell = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = useAuth();
   const projects = useProjects(auth.token, auth.user);
   const tasks = useTasks(auth.token, auth.user);
@@ -49,6 +55,22 @@ const AppShell = () => {
       <div className="flex min-h-screen items-center justify-center bg-ink text-slate-200">
         Loading...
       </div>
+    );
+  }
+
+  // — Invite links work whether or not someone is signed in —
+  const inviteMatch = matchPath('/invite/:token', location.pathname);
+  if (inviteMatch?.params.token) {
+    return (
+      <InviteAcceptView
+        inviteToken={inviteMatch.params.token}
+        signedInAs={auth.user}
+        onAccepted={(result) => {
+          auth.completeAuth(result);
+          navigate('/', { replace: true });
+        }}
+        onLogout={auth.handleLogout}
+      />
     );
   }
 
@@ -137,11 +159,17 @@ const AppShell = () => {
     );
   }
 
+  // An API without roles treats every user as an owner; mirror that here.
+  const currentUser = { ...auth.user, role: auth.user.role ?? 'owner' };
+  const manager = canManage(currentUser.role);
+
   // — Dashboard derived data —
   const today = new Date().toISOString().slice(0, 10);
   const sevenDaysOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-  const kpis = computeKpis(projects.projects, expenses.expenses);
+  const allKpis = computeKpis(projects.projects, expenses.expenses);
+  // Field users don't see budgets, so drop budget-based KPIs.
+  const kpis = manager ? allKpis : allKpis.filter((k) => k.label !== 'Total Budget' && k.label !== 'Variance');
   const tasksDueSoon = computeTasksDueSoon(tasks.tasks, projects.projects, today, sevenDaysOut);
   const recentExpenses = computeRecentExpenses(expenses.expenses, vendors.vendors, projects.projects);
   const projectSpendData = computeProjectSpendData(projects.projects, expenses.expenses);
@@ -150,6 +178,7 @@ const AppShell = () => {
 
   // — Main layout —
   return (
+    <CurrentUserProvider value={currentUser}>
     <div className="min-h-screen bg-ink text-slate-100">
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#1e293b,transparent_55%)]" />
       <div className="md:grid md:h-screen md:grid-cols-[260px_1fr]">
@@ -184,6 +213,7 @@ const AppShell = () => {
                   projectSpendData={projectSpendData}
                   spendByMonth={spendByMonth}
                   spendByCategory={spendByCategory}
+                  showBudget={manager}
                   headerActions={
                     <button className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-slate-950 shadow">
                       Export CSV
@@ -203,6 +233,7 @@ const AppShell = () => {
                   onFormChange={projects.setProjectForm}
                   onSubmit={projects.handleProjectSubmit}
                   onViewProject={(id) => navigate(`/projects/${id}`)}
+                  canCreate={manager}
                 />
               }
             />
@@ -272,6 +303,7 @@ const AppShell = () => {
                   receiptFile={expenses.receiptFile}
                   onReceiptFileChange={expenses.setReceiptFile}
                   onViewReceipt={expenses.handleViewReceipt}
+                  canEdit={manager}
                 />
               }
             />
@@ -296,20 +328,24 @@ const AppShell = () => {
                   deletingVendorId={vendors.deletingVendorId}
                   onRequestDeleteVendor={vendors.setDeletingVendorId}
                   onDeleteVendor={vendors.handleVendorDelete}
+                  canEdit={manager}
                 />
               }
             />
             <Route
               path="/invoices"
               element={
-                <InvoicesView
-                  token={auth.token ?? ''}
-                  companyName={auth.companyName ?? 'Company'}
-                  projects={projects.projects}
-                />
+                manager ? (
+                  <InvoicesView
+                    token={auth.token ?? ''}
+                    companyName={auth.companyName ?? 'Company'}
+                    projects={projects.projects}
+                  />
+                ) : <NoAccessView />
               }
             />
-            <Route path="/reports" element={<ReportsView token={auth.token ?? ''} />} />
+            <Route path="/reports" element={manager ? <ReportsView token={auth.token ?? ''} /> : <NoAccessView />} />
+            <Route path="/team" element={manager ? <TeamView token={auth.token ?? ''} /> : <NoAccessView />} />
             <Route path="/settings" element={<SettingsView token={auth.token ?? ''} userEmail={auth.user?.email ?? ''} />} />
             <Route path="/documents" element={<DocumentsView token={auth.token ?? ''} projects={projects.projects} />} />
           </Routes>
@@ -323,6 +359,7 @@ const AppShell = () => {
         onCategoriesChange={categories.setCategories}
       />
     </div>
+    </CurrentUserProvider>
   );
 };
 

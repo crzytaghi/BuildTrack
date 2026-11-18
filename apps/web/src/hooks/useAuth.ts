@@ -61,6 +61,17 @@ export const useAuth = () => {
     init();
   }, []);
 
+  // Stores a new session. Used by login, signup and invite acceptance.
+  const completeAuth = (data: { token: string; user: User; company?: { name: string } }) => {
+    localStorage.setItem('bt_token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    if (data.company) {
+      setCompanyName(data.company.name);
+      setCompanySetupRequired(false);
+    }
+  };
+
   const handleAuth = async (path: 'login' | 'signup', payload: Record<string, string>) => {
     setError(null);
     try {
@@ -76,13 +87,7 @@ export const useAuth = () => {
         throw new Error((data as { error?: string }).error ?? 'Authentication failed');
       }
       const data = (await res.json()) as { token: string; user: User; company?: { name: string } };
-      localStorage.setItem('bt_token', data.token);
-      setToken(data.token);
-      setUser(data.user);
-      if (path === 'signup' && data.company) {
-        setCompanyName(data.company.name);
-        setCompanySetupRequired(false);
-      }
+      completeAuth(path === 'signup' ? data : { token: data.token, user: data.user });
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
         throw new Error('Unable to reach the server. Please try again.');
@@ -129,6 +134,6 @@ export const useAuth = () => {
     signupAddress, setSignupAddress,
     signupPhone, setSignupPhone,
     companyName, companySetupRequired,
-    handleAuth, handleLogout, handleCompanySetup,
+    handleAuth, completeAuth, handleLogout, handleCompanySetup,
   };
 };

@@ -17,6 +17,8 @@ type Props = {
   spendByMonth: MonthSpend[];
   spendByCategory: CategorySpend[];
   headerActions?: ReactNode;
+  /** Budget vs Actual is owner/manager only. */
+  showBudget?: boolean;
 };
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -24,7 +26,7 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtAxis = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', notation: 'compact', maximumFractionDigits: 1 });
 
-const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpenses, projectSpendData, spendByMonth, spendByCategory, headerActions }: Props) => {
+const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpenses, projectSpendData, spendByMonth, spendByCategory, headerActions, showBudget = true }: Props) => {
   const maxVal = Math.max(...projectSpendData.flatMap((p) => [p.budget, p.actual]), 1);
   const maxMonthVal = Math.max(...spendByMonth.map((m) => m.amount), 1);
   const maxCatVal = Math.max(...spendByCategory.map((c) => c.amount), 1);
@@ -47,7 +49,8 @@ const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpens
           </div>
         ))}
       </section>
-      <section className="grid grid-cols-1 gap-6 px-4 sm:px-6 lg:grid-cols-[2fr_1fr] lg:px-8">
+      <section className={`grid grid-cols-1 gap-6 px-4 sm:px-6 lg:px-8 ${showBudget ? 'lg:grid-cols-[2fr_1fr]' : ''}`}>
+        {showBudget && (
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="text-sm font-semibold text-slate-200">Budget vs Actual</div>
           {projectSpendData.length === 0 ? (
@@ -90,6 +93,7 @@ const DashboardView = ({ userName, companyName, kpis, tasksDueSoon, recentExpens
             </div>
           )}
         </div>
+        )}
         <div className="rounded-2xl bg-panel p-6 shadow-lg">
           <div className="text-sm font-semibold text-slate-200">Tasks Due Soon</div>
           <div className="mt-4 space-y-3">

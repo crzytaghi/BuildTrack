@@ -26,6 +26,7 @@ Every user belongs to one company and has one role. The role is returned on ever
 | Budget line items & quotes        | ✓ | ✓ | – |
 | Invoices                          | ✓ | ✓ | – |
 | Vendors & categories              | ✓ | ✓ | view only (no spend totals) |
+| Project budget total              | ✓ | ✓ | – (omitted from project responses) |
 
 Enforcement lives in the API (`apps/api/src/lib/permissions.ts`):
 
@@ -58,6 +59,10 @@ Enforcement lives in the API (`apps/api/src/lib/permissions.ts`):
 The raw `token` is returned only once, when the invite is created; the database stores a
 SHA-256 hash. Clients turn it into a link such as `https://<web-app>/invite/<token>` for the
 owner to share. Links expire after 7 days and work once.
+
+On the web app, owners create links on the **Team** page (`/team`), and invitees open
+`/invite/<token>` to set their name and password. Owners and managers assign field users to a
+project under **Project → Settings → Crew**.
 
 ### Project assignments
 

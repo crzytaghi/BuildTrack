@@ -31,6 +31,8 @@ type Props = {
   receiptFile: File | null;
   onReceiptFileChange: (file: File | null) => void;
   onViewReceipt: (expenseId: string) => void;
+  /** Owners and managers can edit/delete expenses, link budget lines and manage categories. */
+  canEdit?: boolean;
 };
 
 const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,6 +63,7 @@ const ExpensesView = ({
   receiptFile,
   onReceiptFileChange,
   onViewReceipt,
+  canEdit = true,
 }: Props) => {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -204,6 +207,7 @@ const ExpensesView = ({
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
+                      {canEdit && (
                       <select
                         value={form.lineItemId}
                         onChange={(e) => onFormChange({ ...form, lineItemId: e.target.value })}
@@ -216,6 +220,7 @@ const ExpensesView = ({
                             <option key={li.id} value={li.id}>{li.description}</option>
                           ))}
                       </select>
+                      )}
                       <input
                         type="date"
                         value={form.expenseDate}
@@ -237,6 +242,7 @@ const ExpensesView = ({
                         )}
                       </div>
                     )}
+                    {canEdit && (
                     <button
                       type="button"
                       onClick={onManageCategories}
@@ -244,6 +250,7 @@ const ExpensesView = ({
                     >
                       Manage categories
                     </button>
+                    )}
                     <button
                       className="mt-4 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-slate-950"
                       onClick={onSubmit}
@@ -311,6 +318,8 @@ const ExpensesView = ({
                                       Receipt
                                     </button>
                                   )}
+                                  {canEdit && (
+                                  <>
                                   <button
                                     className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-200"
                                     onClick={() => onEditExpense(expense)}
@@ -323,6 +332,8 @@ const ExpensesView = ({
                                   >
                                     Delete
                                   </button>
+                                  </>
+                                  )}
                                 </>
                               )}
                             </div>

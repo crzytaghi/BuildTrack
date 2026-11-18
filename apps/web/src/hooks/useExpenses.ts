@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getApiBase } from '../lib/api';
+import { canManage } from '../lib/permissions';
 import type { BudgetLineItem, ExpenseFormState, ExpenseItem, User } from '../types/projects';
 
 const API_BASE = getApiBase();
@@ -57,12 +58,12 @@ export const useExpenses = (token: string | null, user: User | null) => {
     loadExpenses();
   }, [location.pathname, expenseFilters, token, user]);
 
-  // Pre-load line items once for expense form dropdowns
+  // Pre-load line items once for expense form dropdowns (budgets are owner/manager only)
   useEffect(() => {
-    if (!token || !user || lineItems.length > 0) return;
+    if (!token || !user || !canManage(user.role) || lineItems.length > 0) return;
     fetch(`${API_BASE}/budget-line-items`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => res.json())
-      .then((data: { data: BudgetLineItem[] }) => setLineItems(data.data))
+      .then((res) => (res.ok ? res.json() : { data: [] }))
+      .then((data: { data: BudgetLineItem[] }) => setLineItems(data.data ?? []))
       .catch(() => null);
   }, [token, user, lineItems.length]);
 
