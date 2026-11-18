@@ -12,7 +12,8 @@ Roles: Owner / Manager / Field. Invites are one-time links (no email service yet
 - Later: send invite links by email once an email service is added
 
 ### Epic: Security Fixes
-- Story: `seed()` runs on every API start, including production, creating a demo company with a known password (`seed@buildtrack.dev`). Limit seeding to dev/test, and check whether production has the demo account
+- ~~Story: Demo data was seeded on every API start, including production~~ (done: opt-in via `SEED_DEMO_DATA=true`, never in production)
+- Story: When production is back up, check whether it has the demo account (`seed@buildtrack.dev`) and delete company `company_seed` if so
 - Story: Expense create/update doesn't check that `categoryId`, `vendorId` and `lineItemId` belong to the user's company
 
 ### Epic: Mobile Parity

@@ -60,12 +60,17 @@ const authorize = (roles: readonly Role[]) => async (req: any, reply: any) => {
   (req as any).auth = auth;
 };
 
+export const shouldSeedDemoData = (env: NodeJS.ProcessEnv = process.env) =>
+  env.SEED_DEMO_DATA === 'true' && env.NODE_ENV !== 'production';
+
 export const buildApp = async () => {
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });
   await app.register(helmet);
 
-  await seed();
+  // Demo data (company_seed / seed@buildtrack.dev, with a publicly known password) is
+  // opt-in for local development only and never created in production.
+  if (shouldSeedDemoData()) await seed();
   const API_PREFIX = '/api/v1';
 
   app.addHook('onClose', async () => {
