@@ -25,11 +25,6 @@ Features on web that mobile is missing.
 - Story: Web component tests beyond auth and dashboard (projects, expenses, reports)
 
 ## Housekeeping
-- Fix mobile type errors and typecheck mobile in CI. `tsc --noEmit` in `apps/mobile` reports 157 errors:
-  - 153 in `__tests__/`: Jest globals (`describe`, `it`, `expect`, `jest`) have no type definitions — add `@types/jest` or Jest types to the mobile tsconfig
-  - 3 in `src/navigation/` (AuthStack, DashboardStack, ProjectsStack): navigators missing the now-required `id` prop
-  - 1 in `src/navigation/AppTabs.tsx`: cannot resolve types for `@react-navigation/bottom-tabs`
-  - Then add mobile to the root `typecheck` script so CI catches regressions
 - Optional: bump `expo` 54.0.33 → ~54.0.37 (patch update suggested by `npx expo install --check`)
 
 ## Later
@@ -50,3 +45,4 @@ Features on web that mobile is missing.
 - Mobile tests in CI
 - Removed unused web `BudgetView` and mobile `TasksScreen` / `PlaceholderScreen`
 - Aligned `jest-expo` with Expo 54
+- Mobile typechecks cleanly (strict mode, Jest types) and runs in CI typecheck
