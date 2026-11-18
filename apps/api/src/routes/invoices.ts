@@ -2,10 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { PrismaClient } from '@prisma/client';
 import { generateInvoicePdf } from '../lib/pdf.js';
+import { MANAGERS, type Role } from '../lib/permissions.js';
 
 type InvoicePluginOptions = {
   prisma: PrismaClient;
-  requireAuth: (req: any, reply: any) => Promise<void>;
+  authorize: (roles: readonly Role[]) => (req: any, reply: any) => Promise<void>;
 };
 
 const lineItemSchema = z.object({
@@ -31,10 +32,12 @@ const resolveOverdue = async (prisma: PrismaClient, companyId: string) => {
 };
 
 const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions) => {
-  const { prisma, requireAuth } = options;
+  const { prisma, authorize } = options;
+  // Invoices are financial records: owners and managers only.
+  const requireManager = authorize(MANAGERS);
 
   // ── List all invoices for company ─────────────────────────────────────────
-  app.get('/invoices', { preHandler: requireAuth }, async (req) => {
+  app.get('/invoices', { preHandler: requireManager }, async (req) => {
     const { companyId } = (req as any).auth.user;
     await resolveOverdue(prisma, companyId);
     const invoices = await prisma.invoice.findMany({
@@ -46,7 +49,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── List invoices for a project ───────────────────────────────────────────
-  app.get('/projects/:projectId/invoices', { preHandler: requireAuth }, async (req, reply) => {
+  app.get('/projects/:projectId/invoices', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { projectId } = req.params as { projectId: string };
     await resolveOverdue(prisma, companyId);
@@ -61,7 +64,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Get single invoice ────────────────────────────────────────────────────
-  app.get('/invoices/:id', { preHandler: requireAuth }, async (req, reply) => {
+  app.get('/invoices/:id', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const invoice = await prisma.invoice.findUnique({ where: { id }, include: { lineItems: true, project: { select: { id: true, name: true } } } });
@@ -70,7 +73,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Create invoice ────────────────────────────────────────────────────────
-  app.post('/invoices', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/invoices', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const body = z.object({
       projectId: z.string().min(1),
@@ -119,7 +122,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Update invoice (DRAFT only) ───────────────────────────────────────────
-  app.patch('/invoices/:id', { preHandler: requireAuth }, async (req, reply) => {
+  app.patch('/invoices/:id', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const existing = await prisma.invoice.findUnique({ where: { id } });
@@ -160,7 +163,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Delete invoice (DRAFT only) ───────────────────────────────────────────
-  app.delete('/invoices/:id', { preHandler: requireAuth }, async (req, reply) => {
+  app.delete('/invoices/:id', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const existing = await prisma.invoice.findUnique({ where: { id } });
@@ -171,7 +174,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Mark as Sent ──────────────────────────────────────────────────────────
-  app.post('/invoices/:id/send', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/invoices/:id/send', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const existing = await prisma.invoice.findUnique({ where: { id } });
@@ -187,7 +190,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Mark as Paid ──────────────────────────────────────────────────────────
-  app.post('/invoices/:id/mark-paid', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/invoices/:id/mark-paid', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const existing = await prisma.invoice.findUnique({ where: { id } });
@@ -203,7 +206,7 @@ const invoiceRoutes = async (app: FastifyInstance, options: InvoicePluginOptions
   });
 
   // ── Generate PDF ──────────────────────────────────────────────────────────
-  app.get('/invoices/:id/pdf', { preHandler: requireAuth }, async (req, reply) => {
+  app.get('/invoices/:id/pdf', { preHandler: requireManager }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const invoice = await prisma.invoice.findUnique({ where: { id }, include: { lineItems: true } });

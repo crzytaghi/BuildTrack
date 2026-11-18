@@ -1,14 +1,16 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { PrismaClient } from '@prisma/client';
+import { OWNERS, type Role } from '../lib/permissions.js';
 
 type CompanyPluginOptions = {
   prisma: PrismaClient;
-  requireAuth: (req: any, reply: any, done: any) => void;
+  requireAuth: (req: any, reply: any) => Promise<void>;
+  authorize: (roles: readonly Role[]) => (req: any, reply: any) => Promise<void>;
 };
 
 const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions) => {
-  const { prisma, requireAuth } = options;
+  const { prisma, requireAuth, authorize } = options;
 
   app.get('/company/me', { preHandler: requireAuth }, async (req) => {
     const { companyId } = (req as any).auth.user;
@@ -25,7 +27,7 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
     };
   });
 
-  app.patch('/company/me', { preHandler: requireAuth }, async (req, reply) => {
+  app.patch('/company/me', { preHandler: authorize(OWNERS) }, async (req, reply) => {
     const { companyId } = (req as any).auth.user;
     const body = z.object({
       name: z.string().min(1).optional(),
@@ -44,7 +46,7 @@ const companyRoutes = async (app: FastifyInstance, options: CompanyPluginOptions
     });
   });
 
-  app.post('/company/setup', { preHandler: requireAuth }, async (req, reply) => {
+  app.post('/company/setup', { preHandler: authorize(OWNERS) }, async (req, reply) => {
     const body = z
       .object({
         name: z.string().min(1),

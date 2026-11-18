@@ -11,6 +11,8 @@ import healthRoutes from './routes/health.js';
 import companyRoutes from './routes/company.js';
 import documentRoutes from './routes/documents.js';
 import invoiceRoutes from './routes/invoices.js';
+import memberRoutes from './routes/members.js';
+import type { Role } from './lib/permissions.js';
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -50,6 +52,14 @@ const requireAuth = async (req: any, reply: any) => {
   (req as any).auth = auth;
 };
 
+// Like requireAuth, but also rejects users whose role is not in `roles` (403).
+const authorize = (roles: readonly Role[]) => async (req: any, reply: any) => {
+  const auth = await getAuthUser(req);
+  if (!auth) return reply.code(401).send({ error: 'Unauthorized' });
+  if (!roles.includes(auth.user.role as Role)) return reply.code(403).send({ error: 'Forbidden' });
+  (req as any).auth = auth;
+};
+
 export const buildApp = async () => {
   const app = Fastify({ logger: true });
   await app.register(cors, { origin: true });
@@ -72,10 +82,11 @@ export const buildApp = async () => {
 
   await app.register(healthRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX, hashPassword, createSession, getAuthUser, requireAuth, prisma });
-  await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth, prisma });
-  await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth });
+  await app.register(projectRoutes, { prefix: API_PREFIX, requireAuth, authorize, prisma });
+  await app.register(companyRoutes, { prefix: API_PREFIX, prisma, requireAuth, authorize });
   await app.register(documentRoutes, { prefix: API_PREFIX, prisma, requireAuth });
-  await app.register(invoiceRoutes, { prefix: API_PREFIX, prisma, requireAuth });
+  await app.register(invoiceRoutes, { prefix: API_PREFIX, prisma, authorize });
+  await app.register(memberRoutes, { prefix: API_PREFIX, prisma, authorize, hashPassword, createSession });
 
   return app;
 };

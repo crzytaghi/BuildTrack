@@ -4,6 +4,9 @@ This document defines the stable contract for auth endpoints. The backend may ch
 implementation (in-memory -> Postgres), but request/response shapes and status codes
 should remain unchanged.
 
+> **Roles:** every `user` object in these responses also includes `role`
+> (`owner` | `manager` | `field`). Signup always creates an `owner`. See [roles.md](roles.md).
+
 ## Base URL
 
 `/auth`

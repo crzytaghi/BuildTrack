@@ -13,7 +13,7 @@ type AuthPluginOptions = {
   requireAuth: (req: any, reply: any) => Promise<void>;
 };
 
-const passwordSchema = z.string().min(8)
+export const passwordSchema = z.string().min(8)
   .refine(p => /[A-Z]/.test(p), 'Password must contain an uppercase letter')
   .refine(p => /[0-9]/.test(p), 'Password must contain a number')
   .refine(p => /[!@#$%^&*(),.?":{}|<>]/.test(p), 'Password must contain a special character');
@@ -72,13 +72,14 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
       passwordSalt: salt,
       createdAt: new Date().toISOString(),
       companyId: company.id,
+      role: 'owner',
     };
     await prisma.user.create({ data: user });
 
     const session = await createSession(user.id);
     return reply.code(201).send({
       token: session.token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
       company: { name: company.name, address: company.address, phone: company.phone },
     });
   });
@@ -100,7 +101,7 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
     const session = await createSession(user.id);
     return reply.send({
       token: session.token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, role: user.role },
     });
   });
 
@@ -115,7 +116,7 @@ const authRoutes = async (app: FastifyInstance, options: AuthPluginOptions) => {
   app.get('/auth/me', async (req, reply) => {
     const auth = await getAuthUser(req);
     if (!auth) return reply.code(401).send({ error: 'Unauthorized' });
-    return { user: { id: auth.user.id, email: auth.user.email, name: auth.user.name } };
+    return { user: { id: auth.user.id, email: auth.user.email, name: auth.user.name, role: auth.user.role } };
   });
 
   app.patch('/auth/password', { preHandler: requireAuth }, async (req, reply) => {

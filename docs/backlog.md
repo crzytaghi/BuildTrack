@@ -5,13 +5,15 @@ _Last updated: 2026-11-18. Ordered by priority within each section._
 ## Up Next
 
 ### Epic: Multi-User Roles
-No role or membership model exists yet — every API route assumes one user per company.
-- Story: Invite company members by email, each with their own login
-- Story: Roles (e.g. owner, manager, field) stored per user
-- Story: Role-based access to projects, enforced on every API route
-- Story: Members list and role management in Settings (web + mobile)
-- Acceptance: A user can only see and edit projects their role allows
-- Acceptance: API tests cover permission checks for each role
+Roles: Owner / Manager / Field. Invites are one-time links (no email service yet). See `docs/roles.md`.
+- ~~Story: API — roles, invite links, project assignments, permission checks on every route, tests~~ (done)
+- Story: Web — Team page (invite, pending invites, roles, remove), invite acceptance page, project assignment, hide UI by role
+- Story: Mobile — invite acceptance, hide screens/actions by role, field users see assigned projects only
+- Later: send invite links by email once an email service is added
+
+### Epic: Security Fixes
+- Story: `seed()` runs on every API start, including production, creating a demo company with a known password (`seed@buildtrack.dev`). Limit seeding to dev/test, and check whether production has the demo account
+- Story: Expense create/update doesn't check that `categoryId`, `vendorId` and `lineItemId` belong to the user's company
 
 ### Epic: Mobile Parity
 Features on web that mobile is missing.
