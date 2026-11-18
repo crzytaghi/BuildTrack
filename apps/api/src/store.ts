@@ -9,6 +9,7 @@ export type User = {
   passwordSalt: string;
   createdAt: string;
   companyId: string;
+  role: string;
 };
 
 export type Session = {
@@ -86,6 +87,11 @@ export type Quote = {
 };
 
 export const resetDb = async () => {
+  await prisma.invite.deleteMany();
+  await prisma.projectMember.deleteMany();
+  await prisma.invoiceLineItem.deleteMany();
+  await prisma.invoice.deleteMany();
+  await prisma.document.deleteMany();
   await prisma.quote.deleteMany();
   await prisma.expense.deleteMany();
   await prisma.session.deleteMany();
@@ -118,6 +124,7 @@ export const seed = async () => {
       passwordSalt: SEED_SALT,
       createdAt: new Date().toISOString(),
       companyId: SEED_COMPANY_ID,
+      role: 'owner',
     },
   });
 

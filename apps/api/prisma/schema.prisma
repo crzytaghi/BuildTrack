@@ -20,18 +20,22 @@ model Company {
   categories           Category[]
   documents            Document[]
   invoices             Invoice[]
+  invites              Invite[]
 }
 
 model User {
-  id           String    @id
-  email        String    @unique
-  name         String
-  passwordHash String
-  passwordSalt String
-  createdAt    String
-  companyId    String
-  company      Company   @relation(fields: [companyId], references: [id])
-  sessions     Session[]
+  id                 String          @id
+  email              String          @unique
+  name               String
+  passwordHash       String
+  passwordSalt       String
+  createdAt          String
+  companyId          String
+  // owner | manager | field
+  role               String
+  company            Company         @relation(fields: [companyId], references: [id])
+  sessions           Session[]
+  projectMemberships ProjectMember[]
 }
 
 model Session {
@@ -59,6 +63,36 @@ model Project {
   quotes      Quote[]
   documents   Document[]
   invoices    Invoice[]
+  members     ProjectMember[]
+
+  @@index([companyId])
+}
+
+// Field users only see projects they are assigned to.
+model ProjectMember {
+  projectId String
+  userId    String
+  createdAt String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@index([userId])
+}
+
+// One-time invite links. Only a SHA-256 hash of the token is stored.
+model Invite {
+  id          String  @id
+  companyId   String
+  email       String
+  // manager | field
+  role        String
+  tokenHash   String  @unique
+  invitedById String
+  createdAt   String
+  expiresAt   Float
+  acceptedAt  String?
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])
 }

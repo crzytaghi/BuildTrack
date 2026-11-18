@@ -4,6 +4,7 @@ import type { PrismaClient } from '@prisma/client';
 import { PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2, BUCKET, MAX_FILE_SIZE } from '../lib/r2.js';
+import { isManager, projectScope, type AuthUser } from '../lib/permissions.js';
 
 type PluginOptions = {
   prisma: PrismaClient;
@@ -12,7 +13,20 @@ type PluginOptions = {
 
 const DOCUMENT_TYPES = ['contract', 'permit', 'drawing', 'invoice', 'photo', 'report', 'other'] as const;
 
+// Owners and managers see every company document. Field users only see documents
+// attached to projects they are assigned to (not company-wide documents).
+const documentScope = (user: AuthUser) =>
+  isManager(user) ? { companyId: user.companyId } : { companyId: user.companyId, project: projectScope(user) };
+
 const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: PluginOptions) => {
+  const authUser = (req: any): AuthUser => req.auth.user;
+
+  // Field users must attach documents to one of their assigned projects.
+  const canUploadTo = async (user: AuthUser, projectId: string | undefined) => {
+    if (!projectId) return isManager(user);
+    const project = await prisma.project.findFirst({ where: { id: projectId, ...projectScope(user) } });
+    return !!project;
+  };
 
   // Generate a presigned PUT URL for direct browser → R2 upload
   app.post('/documents/upload-url', { preHandler: requireAuth }, async (req, reply) => {
@@ -23,6 +37,10 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
       fileSize: z.number().int().positive().max(MAX_FILE_SIZE, 'File exceeds 50 MB limit'),
       projectId: z.string().optional(),
     }).parse(req.body);
+
+    if (!(await canUploadTo(authUser(req), body.projectId))) {
+      return reply.code(404).send({ error: 'Project not found' });
+    }
 
     const safeFileName = body.fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const fileKey = `${companyId}/${body.projectId ?? 'general'}/${Date.now()}-${safeFileName}`;
@@ -52,12 +70,9 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
       notes: z.string().optional(),
     }).parse(req.body);
 
-    // Validate projectId belongs to this company if provided
-    if (body.projectId) {
-      const project = await prisma.project.findFirst({
-        where: { id: body.projectId, companyId },
-      });
-      if (!project) return reply.code(404).send({ error: 'Project not found' });
+    // Validate the project is one this user can access (required for field users)
+    if (!(await canUploadTo(authUser(req), body.projectId))) {
+      return reply.code(404).send({ error: 'Project not found' });
     }
 
     const doc = await prisma.document.create({
@@ -81,7 +96,6 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
 
   // List documents for the company (optionally filtered by projectId or type)
   app.get('/documents', { preHandler: requireAuth }, async (req, reply) => {
-    const { companyId } = (req as any).auth.user;
     const query = z.object({
       projectId: z.string().optional(),
       type: z.string().optional(),
@@ -89,7 +103,7 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
 
     const docs = await prisma.document.findMany({
       where: {
-        companyId,
+        ...documentScope(authUser(req)),
         ...(query.projectId ? { projectId: query.projectId } : {}),
         ...(query.type ? { type: query.type } : {}),
       },
@@ -101,10 +115,9 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
 
   // Generate a presigned GET URL for download (1 hour expiry)
   app.get('/documents/:id/url', { preHandler: requireAuth }, async (req, reply) => {
-    const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
 
-    const doc = await prisma.document.findFirst({ where: { id, companyId } });
+    const doc = await prisma.document.findFirst({ where: { id, ...documentScope(authUser(req)) } });
     if (!doc) return reply.code(404).send({ error: 'Document not found' });
 
     const command = new GetObjectCommand({
@@ -119,13 +132,12 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
 
   // Update document notes
   app.patch('/documents/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
     const body = z.object({
       notes: z.string().optional(),
     }).parse(req.body);
 
-    const doc = await prisma.document.findFirst({ where: { id, companyId } });
+    const doc = await prisma.document.findFirst({ where: { id, ...documentScope(authUser(req)) } });
     if (!doc) return reply.code(404).send({ error: 'Document not found' });
 
     const updated = await prisma.document.update({
@@ -138,10 +150,9 @@ const documentRoutes = async (app: FastifyInstance, { prisma, requireAuth }: Plu
 
   // Delete document from R2 and DB
   app.delete('/documents/:id', { preHandler: requireAuth }, async (req, reply) => {
-    const { companyId } = (req as any).auth.user;
     const { id } = req.params as { id: string };
 
-    const doc = await prisma.document.findFirst({ where: { id, companyId } });
+    const doc = await prisma.document.findFirst({ where: { id, ...documentScope(authUser(req)) } });
     if (!doc) return reply.code(404).send({ error: 'Document not found' });
 
     await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: doc.fileKey }));
