@@ -64,3 +64,16 @@ jobs:
         run: echo "DATABASE_URL=postgresql://ci:ci@localhost:5432/buildtrack_test" > apps/api/.env.test
       - run: npm test
         working-directory: apps/api
+
+  test-mobile:
+    name: Test Mobile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --ci
+        working-directory: apps/mobile

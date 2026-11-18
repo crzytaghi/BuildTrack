@@ -10,6 +10,7 @@
     "build": "npm run -w apps/api build && npm run -w apps/web build",
     "lint": "npm run -w apps/api lint && npm run -w apps/web lint",
     "typecheck": "npm run -w apps/api typecheck && npm run -w apps/web typecheck",
-    "test:web": "npm run -w apps/web test"
+    "test:web": "npm run -w apps/web test",
+    "test:mobile": "npm run -w apps/mobile test"
   }
 }
